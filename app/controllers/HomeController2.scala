@@ -17,7 +17,7 @@ class HomeController2 @Inject()(val controllerComponents: ControllerComponents) 
    * will be called when the application receives a `GET` request with
    * a path of `/`.
    */
-  def index(fonts : Seq[String]) = Action { implicit request: Request[AnyContent] =>
+  def index(fonts : Seq[String]): Action[AnyContent] = Action { implicit request: Request[AnyContent] =>
     Ok(views.html.index())
   }
 }
