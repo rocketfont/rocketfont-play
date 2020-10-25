@@ -44,7 +44,7 @@ class FontSubset @Inject()(config: Configuration, implicit val ec: ExecutionCont
     require(webRootDir.exists && webRootDir.isDirectory, "rocketFont.webRootDir does not exists or not a dir")
 
 
-    val targetFontFileNameAbs = File(fontsDir + File.separator + fontName).toAbsolute
+    val targetFontFileNameAbs = File(fontsDir.path + File.separator + fontName).toAbsolute
 
     require(targetFontFileNameAbs.exists
       && targetFontFileNameAbs.isFile, s"$fontName is not exists in $fontsDir or not a file")
