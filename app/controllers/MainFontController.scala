@@ -7,10 +7,13 @@ import javax.inject._
 import play.api.Configuration
 import play.api.mvc._
 import scalikejdbc._
-import undefined.{Font4Tuple, FontTuple}
+import undefined.{Font4Tuple, FontInfo, FontSubset, FontTuple, UnicodeRangePrinter}
 
+import scala.::
+import scala.collection.immutable.SortedSet
 import scala.concurrent.ExecutionContext
 import scala.math.Ordered.orderingToOrdered
+import scala.math.Ordering.Implicits.seqOrdering
 import scala.reflect.io.File
 
 /**
@@ -21,36 +24,46 @@ import scala.reflect.io.File
 class MainFontController @Inject()(val controllerComponents: ControllerComponents,
                                    config: Configuration,
                                    implicit val ec: ExecutionContext) extends BaseController {
+  private val cdnUrl = config.get[String]("rocketFont.cdnURL")
 
   private val webRootDir = config.get[String]("rocketFont.webRootDir")
 
   def index(font: Seq[String]): Action[AnyContent] = Action { implicit request: Request[AnyContent] =>
 
-    val fonts = Seq.empty[FontTuple]
-    val fontNames = fonts.map(t => t.fontName)
+    val fontsParams = Seq.empty[FontTuple]
+    val fontNames = fontsParams.map(t => t.fontName)
 
     val referer = Some("")
 
 
-    val fontSrls = DB readOnly { implicit session =>
-      val wherePart = fonts.foldLeft(sqls"") { (accum, b) => {
+    val fonts = DB readOnly { implicit session =>
+      val wherePart = fontsParams.foldLeft(sqls"") { (accum, b) =>
         accum + sqls""" OR(font_name = ${b.fontName} and font_weight = ${b.fontWeight} )${"\n"}"""
-      }
       }
 
       sql"""
-          SELECT font_srl
+          SELECT font_srl, font_name, font_family_name, font_style, font_weight, font_format
           FROM font
           WHERE 1=0
           OR $wherePart
          """.stripMargin
-        .map(rs => rs.long("font_srl"))
+        .map(rs =>
+          FontInfo(fontSrl = rs.long("font_srl"),
+            fontName = rs.string("font_name"),
+            fontFamilyName = rs.string("font_family_name"),
+            fontWeight = rs.int("font_weight").toChar,
+            fontStyle = rs.string("font_style"),
+            fontFormat = rs.string("font_extension"))
+        )
         .list()
         .apply()
     }
 
-    require(fontSrls.length == fonts.length,
-      s"요청한 폰트 중 일부가 서버에 존재하지 않습니다. 요청:'${fontNames.mkString(",")}', srls : '${fontSrls.mkString(",")}'")
+    val fontSrls = fonts.map(_.fontSrl)
+    val fontsMap = fonts.map(t => t.fontSrl -> t).toMap
+
+    require(fontsParams.length == fonts.length,
+      s"요청한 폰트 중 일부가 서버에 존재하지 않습니다. 요청:'${fontNames.mkString(",")}', srls : '${fonts.mkString(",")}'")
 
 
     val fontsUnicodes: Map[Long, Set[Int]] = DB readOnly { implicit session =>
@@ -114,7 +127,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
             oldMap + (urlAccessSrl -> (oldSet + unicode))
           }
 
-      val (setAUnicodes: Set[Int], setBUnicodes: Iterable[Int]) =
+      val (setAUnicodes: Set[Int], setBUnicodes: Set[Int]) =
         setAUrlAccessSrl match {
           case Some(t) if ABSetUnicodes.isDefinedAt(t) => (ABSetUnicodes(t), (ABSetUnicodes - t).values.flatten.toSet)
           case _ => (Set.empty[Int], ABSetUnicodes.values.flatten.toSet)
@@ -123,31 +136,81 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
       (setAUnicodes, setBUnicodes.diff(setAUnicodes))
     }
 
-    val setCUnicodes = DB readOnly {implicit session =>
+    val setCUnicodes = DB readOnly { implicit session =>
       sql"""
            SELECT unicode
            FROM font_unicode_set_c
            ORDER BY priority ASC
            """
-        .map(rs=> rs.int("unicode"))
+        .map(rs => rs.int("unicode"))
         .list()
         .apply()
         .toSet
     }
 
-    val filteredUnicodes = fontsUnicodes.map(t => {
+    val groupedOrderedUnicodesByFontSrl: Map[Long, Iterator[Seq[Int]]] = fontsUnicodes.map(t => {
       val (fontSrl, fontUnicodes) = t
       val setAUnicodes = fontUnicodes & setAPageUnicodes
       val setBUnicodes = (fontUnicodes & setBPageUnicodes) -- setAUnicodes
       val setCUnicodes = (fontUnicodes -- setAUnicodes) -- setBUnicodes
       val setDUnicodes = ((fontUnicodes -- setAUnicodes) -- setBUnicodes) -- setCUnicodes
-      (fontSrl, Font4Tuple(setAUnicodes, setBUnicodes, setCUnicodes, setDUnicodes) )
+
+      val orderedUnicodes = Seq.empty[Int] ++ setAUnicodes ++ setBUnicodes ++ setCUnicodes ++ setDUnicodes
+      val grouping = 100
+      val groupedOrderedUnicodes = orderedUnicodes.grouped(grouping)
+      fontSrl -> groupedOrderedUnicodes
     })
 
+    val subsettedFontFilesByFontSrl = groupedOrderedUnicodesByFontSrl.map { t =>
+      val (fontSrl, groupedOrderedUnicodes) = t
+      val fontInfo = fontsMap(fontSrl)
+      val fontFileName = fontInfo.toFontFileName
+      val fontSubsetTool = new FontSubset(config, ec)
+
+      val groupedOrderedSubsetedFontFiles =
+        groupedOrderedUnicodes.map(t => (fontSubsetTool.subsetFont(fontFileName, t), t.sorted))
+      fontSrl -> groupedOrderedSubsetedFontFiles
+    }
+
+    //write css
+
+    // 폰트 종류당
+    val css = subsettedFontFilesByFontSrl.foldLeft(new StringBuilder) { (sb, a) =>
+
+      // key fontSrl
+      val (fontSrl, subsettedFontFamilyFiles) = a
+      val fontInfo = fontsMap(fontSrl)
 
 
+      val fontSrlCss
+      = subsettedFontFamilyFiles.foldLeft(new StringBuilder) { (sb2, subsettedFontFile) =>
+        val (fontFiles, unicodeSeq: Seq[Int]) = subsettedFontFile
 
-    ???
+        val fontUrlPart = fontFiles.foldLeft(new StringBuilder()){(sb3, fontFile) =>
+          val str =
+            s"""url('$cdnUrl$subsettedFontFile${fontFile.name}')
+               |format('${fontFile.extension}')""".stripMargin
+          sb3.append(sb3)
+        }.toString
 
+        val fontFace = s"""
+           |@font-face {
+           |  font-family : '${fontInfo.fontFamilyName}';
+           |  font-style: normal;
+           |  font-weight: ${fontInfo.fontWeight}
+           |  font-display: swap;
+           |  src: local('${fontInfo.toLocalFontName}'), $fontUrlPart
+           |  unicode-range: ${UnicodeRangePrinter.print(unicodeSeq)}
+           |
+           |""".stripMargin
+
+        sb2.append(fontFace)
+          .append("\n")
+      }
+
+      sb.append(fontSrlCss)
+      sb.append("\n")
+    }
+    Ok(css.toString()).as(CSS)
   }
 }

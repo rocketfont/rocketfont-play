@@ -15,7 +15,7 @@ import scala.util.{Failure, Success, Try}
 @Singleton
 class FontSubset @Inject()(config: Configuration, implicit val ec: ExecutionContext) {
 
-  val pyftsubset = "pyftsubset"
+  private val pyftsubset = "pyftsubset"
   private val logger: Logger = Logger(this.getClass)
 
   def help: Int = {
@@ -35,7 +35,12 @@ class FontSubset @Inject()(config: Configuration, implicit val ec: ExecutionCont
     new SecureRandom().nextLong().toHexString
   }
 
-  def subsetFont(fontName: String, subsetChar: String): () = {
+  def subsetFont(fontName: String, subsetChars: Iterable[Int]): Seq[File] = {
+    val subsetCharsString = subsetChars.map(Character.toString).mkString
+    subsetFont(fontName, subsetCharsString)
+  }
+
+  def subsetFont(fontName: String, subsetChars: String): Seq[File] = {
 
     val fontsDir = File(config.underlying.getString("rocketFont.fontsDir"))
     val webRootDir = File(config.underlying.getString("rocketFont.webRootDir"))
@@ -51,14 +56,14 @@ class FontSubset @Inject()(config: Configuration, implicit val ec: ExecutionCont
 
 
     val subsetCharFile = File.makeTemp("subsetChars", ".txt").toAbsolute
-    subsetCharFile.writeAll(subsetChar)
+    subsetCharFile.writeAll(subsetChars)
 
     val fileFormats = Seq("woff", "woff2")
 
-    val newFileName = s"${fontName}_${SHA256Hash.hash(subsetChar)}"
+    val newFileName = s"${fontName}_${SHA256Hash.hash(subsetChars)}"
     val newAbsFileNameWithoutExtension = s"${webRootDir.path}${File.separator}$newFileName"
 
-    fileFormats.map(format =>
+    val outputResult = fileFormats.map(format =>
       Future {
         val sb = new StringBuilder
         val processLogger = ProcessLogger(sb append _)
@@ -80,13 +85,16 @@ class FontSubset @Inject()(config: Configuration, implicit val ec: ExecutionCont
           Await.result(t, 10.seconds)
         }
       }
-      .foreach {
+      .map {
         case Failure(exception) => throw exception
         case Success((p, outputFile, sb)) =>
           require(p.exitValue() == 0, s" exit code '${p.exitValue()}', see error : '$sb'")
           require(outputFile.exists, s" output file '${outputFile.path}' does not exists, see err log : '$sb'")
+          outputFile
       }
     subsetCharFile.delete()
+
+    outputResult
   }
 }
 
