@@ -1,12 +1,9 @@
-package undefined
+package undefined.dataClass
 
-import undefined.FontTuple.defaultWidth
-
-import scala.util.Try
+import undefined.dataClass.FontTuple.defaultWidth
 
 
-case class FontTuple(fontFamilyName: String,
-                     fontStyle: String = "normal", fontWeight: Int = defaultWidth) {
+case class FontTuple(fontFamilyName: String, fontWeight: Int = defaultWidth, fontStyle: String = "normal") {
 }
 
 object FontWeightInt {
@@ -20,7 +17,7 @@ object FontTuple {
     val fontsReqStringArr = fontRequestString.split(':')
     fontsReqStringArr match {
       case Array(fontName, FontWeightInt(fontWeight), fontStyle)
-      => Some(FontTuple(fontName, fontStyle, fontWeight))
+      => Some(FontTuple(fontName, fontWeight, fontStyle))
       case _ => None
     }
   }

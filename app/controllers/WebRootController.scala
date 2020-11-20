@@ -19,6 +19,8 @@ class WebRootController @Inject()(val controllerComponents: ControllerComponents
   private val webRootDir = config.get[String]("rocketFont.webRootDir")
 
   def index(fileName : String): Action[AnyContent] = Action { implicit request: Request[AnyContent] =>
+
+    require(!fileName.contains(".."))
     val file = File(webRootDir + File.separator + fileName)
     file match {
       case f if f.exists => Ok.sendFile(file.jfile)

@@ -1,0 +1,59 @@
+@(text : String , fontParams : String, fontFamily : String)
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <script>
+                {
+                    let txSize = 0;
+
+                    const perf_observer =  (list) => {
+                        list.getEntries().forEach(t => {
+                            if (['css', 'link'].includes(t.initiatorType)){
+                                txSize += t.transferSize;
+                                console.log('txSize', txSize, 'added', t.transferSize);
+                            }
+                        });
+                    }
+                    var observer2 = new PerformanceObserver(perf_observer);
+                    observer2.observe({entryTypes: ['resource']});
+                    window.addEventListener('load',() =>{
+                        document.fonts.ready.then(() => {
+                            const dom = document.createElement('meta')
+                            dom.name = dom.id='dataTransferSize';
+                            dom.content = txSize;
+                            console.log(txSize);
+                            document.head.appendChild(dom);
+                        })
+                    })
+                }
+        </script>
+        <script>
+                (() => {
+                    "use strict";
+                    const e = "https://font-measure.localhost.rocketfont.net/fontUsageMeasure/api/v1/fontUsageMeasure",
+                            t = "https://cdn.localhost.rocketfont.net/fonts/api/v1/fonts", n = 60;
+                    !function (o, a) {
+                        var c = document; var r = c.createElement("link"); r.rel = "stylesheet";
+                        var a = "@fontParams?url=" + encodeURIComponent(c.location.href), s = t + "/" + a, l = e + "/" + a;
+                        r.href = s, c.head.appendChild(r);
+                        var f = function () {
+                            fetch(l, {importance: "low", credentials : 'include'})
+                        };
+                        window.addEventListener('load',() => {
+                            f(), setInterval(f, 1e3 * n)
+                        })
+                    }()
+                })();
+        </script>        <style>
+                * {
+                    font-family : '@fontFamily' !important;
+                    font-size: 2rem;
+                }
+        </style>
+        <title>Title</title>
+    </head>
+    <body>
+        @text
+    </body>
+</html>

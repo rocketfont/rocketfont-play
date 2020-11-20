@@ -3,10 +3,31 @@
 # https://www.playframework.com/documentation/latest/ScalaRouting
 # ~~~~
 
+# member
+GET      /backoffice/api/v1/member/isLogged                 controllers.member.IsLogged.index()
++ nocsrf
+POST     /backoffice/api/v1/member/login                    controllers.member.Login.index()
++ nocsrf
+POST     /backoffice/api/v1/member/signUp                   controllers.member.SignUp.index()
+GET      /backoffice/api/v1/member/logout                   controllers.member.Logout.index()
+
++ nocsrf
+POST    /backoffice/api/v1/member/site                  controllers.hostsAuth.RegisterHostNamesController.index()
+
+GET    /backoffice/api/v1/member/site                  controllers.hostsAuth.GetHostNamesController.index()
+
 # An example controller showing a sample home page
-GET     /                                       controllers.HomeController.index()
-GET     /api/v1/fonts                           controllers.HomeController2.index(fonts : Seq[String])
+GET     /                                               controllers.HomeController.index()
+GET     /fonts/api/v1/fonts/*fontParameter            controllers.MainFontController.index(fontParameter : String,  url: Option[String])
+
+
+
+GET     /fontUsageMeasure/api/v1/fontUsageMeasure/*fontParameter controllers.fontUsageMeasure.FontUsageMeasureController.index(fontParameter: String, url : String)
+
+GET     /gomguk/getTestPages                    controllers.GomGukWebPagePrintController.index(srl : Long, fontParams : String, fontFamily : String)
+
+GET     /backoffice/api/v1/font                 controllers.FontsController.index()
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
-GET     /api/v1/fontFiles/:fileName               controllers.WebRootController.index(fileName : String)
+GET     /assets/*file                           controllers.Assets.versioned(path="/public", file: Asset)
+GET     /api/v1/fontFiles/*fileName             controllers.WebRootController.index(fileName : String)

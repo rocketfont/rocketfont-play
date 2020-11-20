@@ -1,20 +1,22 @@
 package controllers
 
-import java.time.temporal.ChronoUnit
-import java.time.{LocalDate, LocalDateTime}
+import java.net.{URL, URLDecoder}
+import java.nio.charset.StandardCharsets
 
 import javax.inject._
 import play.api.Configuration
 import play.api.mvc._
 import scalikejdbc._
-import undefined.{Font4Tuple, FontInfo, FontSubset, FontTuple, UnicodeRangePrinter}
+import undefined.dataClass.{FontTuple, UnicodeSet}
+import undefined.fonts.{ABUnicodes, FontUnicodes, Fonts, ValidateRequestWithReferer}
+import undefined.{AccessAndUpdateURLOnDemand, FontSubset, UnicodeRangePrinter, UnicodeSetWithFile, dataClass}
+import akka.actor.ActorSystem
 
-import scala.::
-import scala.collection.immutable.SortedSet
 import scala.concurrent.ExecutionContext
-import scala.math.Ordered.orderingToOrdered
-import scala.math.Ordering.Implicits.seqOrdering
 import scala.reflect.io.File
+import undefined.AuthorizedAction
+
+import scala.util.matching.Regex
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -23,194 +25,166 @@ import scala.reflect.io.File
 @Singleton
 class MainFontController @Inject()(val controllerComponents: ControllerComponents,
                                    config: Configuration,
+                                   access: AccessAndUpdateURLOnDemand,
+                                   authorizedAction: AuthorizedAction,
+                                   ac: ActorSystem,
                                    implicit val ec: ExecutionContext) extends BaseController {
+
+
+
   private val cdnUrl = config.get[String]("rocketFont.cdnURL")
 
-  private val webRootDir = config.get[String]("rocketFont.webRootDir")
+  def index(fontParams: String, urlOpt: Option[String]): Action[AnyContent] = Action { request =>
 
-  def index(font: Seq[String]): Action[AnyContent] = Action { implicit request: Request[AnyContent] =>
+    val refererOpt = request.headers.toSimpleMap.get("referer")
 
-    val fontsParams = Seq.empty[FontTuple]
-    val fontNames = fontsParams.map(t => t.fontName)
+    val url = urlOpt.getOrElse("")
 
-    val referer = Some("")
+    val isValidRequest = ValidateRequestWithReferer(refererOpt, url)
+    val referer = refererOpt.getOrElse("")
 
-
-    val fonts = DB readOnly { implicit session =>
-      val wherePart = fontsParams.foldLeft(sqls"") { (accum, b) =>
-        accum + sqls""" OR(font_name = ${b.fontName} and font_weight = ${b.fontWeight} )${"\n"}"""
-      }
-
-      sql"""
-          SELECT font_srl, font_name, font_family_name, font_style, font_weight, font_format
-          FROM font
-          WHERE 1=0
-          OR $wherePart
-         """.stripMargin
-        .map(rs =>
-          FontInfo(fontSrl = rs.long("font_srl"),
-            fontName = rs.string("font_name"),
-            fontFamilyName = rs.string("font_family_name"),
-            fontWeight = rs.int("font_weight").toChar,
-            fontStyle = rs.string("font_style"),
-            fontFormat = rs.string("font_extension"))
-        )
-        .list()
-        .apply()
+    val targetUrl = (isValidRequest, urlOpt) match {
+      case (true, Some(x)) if  Seq("cdn.localhost.rocketfont.net").exists(t => referer.contains(t)) =>
+        access.apply(referer)
+        Some(url)
+      case (true, _) => Some(url)
+      case (false, _) => throw new Exception("Invaild Request")
     }
+
+
+    val (setAPageUnicodes, setBPageUnicodes) = urlOpt match {
+      case Some(t) =>
+        ABUnicodes.getABUnicodesByURL(targetUrl)
+      case None => (Seq.empty[Int], Seq.empty[Int])
+    }
+
+
+
+    val fonts = Fonts.getFontsFromDBByFontParams(fontParams)
 
     val fontSrls = fonts.map(_.fontSrl)
     val fontsMap = fonts.map(t => t.fontSrl -> t).toMap
 
-    require(fontsParams.length == fonts.length,
-      s"요청한 폰트 중 일부가 서버에 존재하지 않습니다. 요청:'${fontNames.mkString(",")}', srls : '${fonts.mkString(",")}'")
 
 
-    val fontsUnicodes: Map[Long, Set[Int]] = DB readOnly { implicit session =>
-      sql"""
-            SELECT font_srl, unicode
-            FROM font_unicode
-            WHERE 1=1
-            AND font_srl in ($fontSrls)
-           """
-        .map(rs => (rs.long("font_srl"), rs.int("unicode")))
-        .list()
-        .apply()
-        .foldLeft(Map.empty[Long, Set[Int]]) { (oldMap, a) =>
-          val (fontSrl, unicode) = a
-          val set = oldMap.getOrElse(fontSrl, Set.empty)
-          oldMap + (fontSrl -> (set + unicode))
-        }
-    }
+    val fontsUnicodes: Map[Long, Set[Int]] = Fonts.getFontsUncidoesFromDB(fontSrls)
 
 
-    val (setAPageUnicodes, setBPageUnicodes) = DB readOnly { implicit session =>
+    require((setAPageUnicodes.toSet & setBPageUnicodes.toSet).isEmpty, "setAPageUnicodes Intersection with setBPageUnicodes NOT empty")
+
+    val CUnicodesSeqInDB: Seq[Int] = DB readOnly { implicit session =>
 
 
-      val nowMinus1 = LocalDateTime.now().minus(1, ChronoUnit.HOURS)
-      val urlAccessSrls: Seq[(Long, LocalDateTime)] =
-        sql"""
-            SELECT ua.url_access_srl, ua.created
-            FROM url_access_log ua
-            JOIN urls u ON 1=1
-            AND u.url = $referer
-            AND u.url_srl = ua.url_srl
-            WHERE 1=1
-            AND ua.created > nowMinus1
-            order by ua.created DESC
-           """
-          .map(rs => (rs.long("access_group_srl"), rs.localDateTime("created")))
-          .list()
-          .apply()
-
-      val setAUrlAccessSrl = urlAccessSrls match {
-        case t if 1 == 1
-          && t.headOption.isDefined
-          && t.head._2 > LocalDateTime.now.minus(10, ChronoUnit.MINUTES)
-        => Some(t.head._1)
-        case _ => None
+      val ABunicodes = setAPageUnicodes ++ setBPageUnicodes
+      val unicodesSqlParam = ABunicodes match {
+        case t if t == Seq.empty[Int] => Seq(None)
+        case t => t.map(x => Some(x))
       }
-
-      val ABSetUnicodes: Map[Long, Set[Int]] =
-        sql"""
-              SELECT url_access_srl, unicode
-              FROM url_letter_log
-              WHERE 1=1
-              AND url_access_srl in ($urlAccessSrls)
-          """
-          .map(rs => (rs.long("url_access_srl"), rs.int("unicode")))
-          .list()
-          .apply()
-          .foldLeft(Map.empty[Long, Set[Int]]) { (oldMap, a) =>
-            val (urlAccessSrl, unicode) = a
-            val oldSet = oldMap.getOrElse(urlAccessSrl, Set.empty)
-            oldMap + (urlAccessSrl -> (oldSet + unicode))
-          }
-
-      val (setAUnicodes: Set[Int], setBUnicodes: Set[Int]) =
-        setAUrlAccessSrl match {
-          case Some(t) if ABSetUnicodes.isDefinedAt(t) => (ABSetUnicodes(t), (ABSetUnicodes - t).values.flatten.toSet)
-          case _ => (Set.empty[Int], ABSetUnicodes.values.flatten.toSet)
-        }
-
-      (setAUnicodes, setBUnicodes.diff(setAUnicodes))
-    }
-
-    val setCUnicodes = DB readOnly { implicit session =>
       sql"""
            SELECT unicode
            FROM font_unicode_set_c
-           ORDER BY priority ASC
+           WHERE 1=1
+           AND unicode  NOT IN ($unicodesSqlParam)
+           ORDER BY priority DESC
            """
         .map(rs => rs.int("unicode"))
         .list()
         .apply()
-        .toSet
     }
 
-    val groupedOrderedUnicodesByFontSrl: Map[Long, Iterator[Seq[Int]]] = fontsUnicodes.map(t => {
-      val (fontSrl, fontUnicodes) = t
-      val setAUnicodes = fontUnicodes & setAPageUnicodes
-      val setBUnicodes = (fontUnicodes & setBPageUnicodes) -- setAUnicodes
-      val setCUnicodes = (fontUnicodes -- setAUnicodes) -- setBUnicodes
-      val setDUnicodes = ((fontUnicodes -- setAUnicodes) -- setBUnicodes) -- setCUnicodes
+    val groupedOrderedUnicodesByFontSrl: Map[Long, UnicodeSet] = fontsUnicodes.map(t => {
 
-      val orderedUnicodes = Seq.empty[Int] ++ setAUnicodes ++ setBUnicodes ++ setCUnicodes ++ setDUnicodes
-      val grouping = 100
-      val groupedOrderedUnicodes = orderedUnicodes.grouped(grouping)
-      fontSrl -> groupedOrderedUnicodes
+      val (fontSrl, fontUnicodes) = t
+
+      val AUnicodes = FontUnicodes(setAPageUnicodes).intersect(fontUnicodes)
+      val BUnicodes = FontUnicodes(setBPageUnicodes).intersect(fontUnicodes)
+      val CUnicodes = FontUnicodes(CUnicodesSeqInDB)
+        .intersect(fontUnicodes)
+
+      val setDUnicodes = FontUnicodes(fontUnicodes.toSeq)
+        .minus(AUnicodes)
+        .minus(BUnicodes)
+        .minus(CUnicodes)
+
+      fontSrl -> dataClass.UnicodeSet(AUnicodes, BUnicodes, CUnicodes, setDUnicodes)
     })
 
-    val subsettedFontFilesByFontSrl = groupedOrderedUnicodesByFontSrl.map { t =>
-      val (fontSrl, groupedOrderedUnicodes) = t
-      val fontInfo = fontsMap(fontSrl)
-      val fontFileName = fontInfo.toFontFileName
-      val fontSubsetTool = new FontSubset(config, ec)
 
-      val groupedOrderedSubsetedFontFiles =
-        groupedOrderedUnicodes.map(t => (fontSubsetTool.subsetFont(fontFileName, t), t.sorted))
-      fontSrl -> groupedOrderedSubsetedFontFiles
+    val fontSubsetTool = new FontSubset(config, ac)
+    val subsettedFontFilesByFontSrl: Map[Long, UnicodeSetWithFile] = groupedOrderedUnicodesByFontSrl.map { t =>
+      val (fontSrl, unicodeSet) = t
+      val fontInfo = fontsMap(fontSrl)
+
+      val groupedOrderedSubsetedFontFiles: Seq[(Seq[File], Seq[Int])] =
+        unicodeSet
+          .orderdGroupedUnicodes
+          .map(t => (fontSubsetTool.subsetFont(fontInfo.fontFileName, t), t))
+      fontSrl -> UnicodeSetWithFile(unicodeSet, groupedOrderedSubsetedFontFiles)
     }
 
     //write css
 
     // 폰트 종류당
-    val css = subsettedFontFilesByFontSrl.foldLeft(new StringBuilder) { (sb, a) =>
+    val css = subsettedFontFilesByFontSrl.foldLeft(Seq.empty[String]) { (sb, a) =>
 
       // key fontSrl
-      val (fontSrl, subsettedFontFamilyFiles) = a
+      val (fontSrl, subsettedFontFamilyFiles: UnicodeSetWithFile) = a
       val fontInfo = fontsMap(fontSrl)
+      val localFontName = fontInfo.toLocalFontName
+
+      val unicodeInfo1 =
+        s"""/*
+           | FontName : ${localFontName}
+           | A : ${UnicodeRangePrinter.printUnicode(subsettedFontFamilyFiles.unicodeSet.setAUnicodes.unicodeSeq)}
+           | B : ${UnicodeRangePrinter.printUnicode(subsettedFontFamilyFiles.unicodeSet.setBUnicodes.unicodeSeq)}
+           | C : ${UnicodeRangePrinter.printUnicode(subsettedFontFamilyFiles.unicodeSet.setCUnicodes.unicodeSeq)}
+           | D : ${UnicodeRangePrinter.printUnicode(subsettedFontFamilyFiles.unicodeSet.setDUnicodes.unicodeSeq)}
+           | */
+           | """
+      val unicodeInfo2 =
+        s"""
+          |/*
+          |FontName : ${localFontName}
+          | A : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setAUnicodes.unicodeSeq)}
+          | B : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setBUnicodes.unicodeSeq)}
+          | C : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setCUnicodes.unicodeSeq)}
+          | D : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setDUnicodes.unicodeSeq)}
+          | */
+          |""".stripMargin
 
 
-      val fontSrlCss
-      = subsettedFontFamilyFiles.foldLeft(new StringBuilder) { (sb2, subsettedFontFile) =>
-        val (fontFiles, unicodeSeq: Seq[Int]) = subsettedFontFile
+      val fontSrlCss = subsettedFontFamilyFiles
+        .fileWithUnicodes
+        .foldLeft(Seq.empty[String]) { (sb2, subsettedFontFile) =>
+          val (fontFiles, unicodeSeq: Seq[Int]) = subsettedFontFile
 
-        val fontUrlPart = fontFiles.foldLeft(new StringBuilder()){(sb3, fontFile) =>
-          val str =
-            s"""url('$cdnUrl$subsettedFontFile${fontFile.name}')
-               |format('${fontFile.extension}')""".stripMargin
-          sb3.append(sb3)
-        }.toString
+          val fontUrlPart = fontFiles.foldLeft(Seq.empty[String]) { (seq, fontFile) =>
+            val str =
+              s"""   url('$cdnUrl/subsettedFonts/${fontFile.name}') format('${fontFile.extension}')""".stripMargin
+            seq :+ str
+          }.mkString(",\n")
 
-        val fontFace = s"""
-           |@font-face {
-           |  font-family : '${fontInfo.fontFamilyName}';
-           |  font-style: normal;
-           |  font-weight: ${fontInfo.fontWeight}
-           |  font-display: swap;
-           |  src: local('${fontInfo.toLocalFontName}'), $fontUrlPart
-           |  unicode-range: ${UnicodeRangePrinter.print(unicodeSeq)}
-           |
-           |""".stripMargin
 
-        sb2.append(fontFace)
-          .append("\n")
-      }
+          val localFontNameNoSpace = localFontName.replaceAll(" ", "")
+          val fontFace = {
+            s"""@font-face {
+               |  font-family: '${fontInfo.fontFamilyName}';
+               |  font-style: normal;
+               |  font-weight: ${fontInfo.fontWeight};
+               |  font-display: swap;
+               |  src: local('$localFontName'), local('$localFontNameNoSpace'),
+               |$fontUrlPart;
+               |  unicode-range: ${UnicodeRangePrinter.printUnicode(unicodeSeq)};
+               |}
+               |""".stripMargin
+          }
 
-      sb.append(fontSrlCss)
-      sb.append("\n")
+          sb2 :+ fontFace
+        }
+
+      sb :+ unicodeInfo2 :+ fontSrlCss.mkString("\n")
     }
-    Ok(css.toString()).as(CSS)
+    Ok(css.mkString("\n")).as(CSS)
+      .withHeaders(("cache-control" -> "s-maxage=120,max-age=360000"))
   }
 }

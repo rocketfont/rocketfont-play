@@ -34,6 +34,8 @@
     <logger name="play" level="INFO"/>
     <logger name="application" level="DEBUG"/>
     <logger name="undefined" level="DEBUG"/>
+    <logger name="org.jdbcdslog.StatementLogger" level="INFO" /> <!-- Will log all statements -->
+
 
     <root level="WARN">
         <appender-ref ref="ASYNCFILE"/>

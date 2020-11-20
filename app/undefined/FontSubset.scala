@@ -2,8 +2,10 @@ package undefined
 
 import java.security.SecureRandom
 
+import akka.actor.ActorSystem
 import com.typesafe.config.Config
 import javax.inject.{Inject, Singleton}
+import play.api.libs.concurrent.Akka
 import play.api.{Configuration, Logger}
 
 import scala.concurrent.duration.DurationInt
@@ -13,14 +15,17 @@ import scala.sys.process._
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class FontSubset @Inject()(config: Configuration, implicit val ec: ExecutionContext) {
+class FontSubset @Inject()(config: Configuration, ac : ActorSystem) {
 
+
+  implicit val ec: ExecutionContext = ac.dispatchers.lookup("my-context")
   private val pyftsubset = "pyftsubset"
   private val logger: Logger = Logger(this.getClass)
+  private val fontFormats = config.get[Seq[String]]("rocketFont.fontFormat")
 
   def help: Int = {
     val future = Future {
-      s"$pyftsubset --help".run
+      s"$pyftsubset --help".run()
     }
     val test = Try {
       Await.result(future, 1.second)
@@ -31,12 +36,8 @@ class FontSubset @Inject()(config: Configuration, implicit val ec: ExecutionCont
     }
   }
 
-  private def randomSuffix(): String = {
-    new SecureRandom().nextLong().toHexString
-  }
-
-  def subsetFont(fontName: String, subsetChars: Iterable[Int]): Seq[File] = {
-    val subsetCharsString = subsetChars.map(Character.toString).mkString
+  def subsetFont(fontName: String, subsetChars: Seq[Int]): Seq[File] = {
+    val subsetCharsString = subsetChars.sorted.map(Character.toString).mkString
     subsetFont(fontName, subsetCharsString)
   }
 
@@ -48,6 +49,9 @@ class FontSubset @Inject()(config: Configuration, implicit val ec: ExecutionCont
     require(fontsDir.exists && fontsDir.isDirectory, "rocketFont.fontsDir does not exists or not a dir")
     require(webRootDir.exists && webRootDir.isDirectory, "rocketFont.webRootDir does not exists or not a dir")
 
+    val fontSaveDir = File(s"${webRootDir.path}${File.separator}/subsettedFonts/")
+    require(fontSaveDir.exists && fontSaveDir.isDirectory && fontSaveDir.canWrite, "fontWriteDir is not writeable")
+
 
     val targetFontFileNameAbs = File(fontsDir.path + File.separator + fontName).toAbsolute
 
@@ -58,31 +62,38 @@ class FontSubset @Inject()(config: Configuration, implicit val ec: ExecutionCont
     val subsetCharFile = File.makeTemp("subsetChars", ".txt").toAbsolute
     subsetCharFile.writeAll(subsetChars)
 
-    val fileFormats = Seq("woff", "woff2")
+    val fileFormats = fontFormats
 
-    val newFileName = s"${fontName}_${SHA256Hash.hash(subsetChars)}"
-    val newAbsFileNameWithoutExtension = s"${webRootDir.path}${File.separator}$newFileName"
+    val subsetCharCount = subsetChars.length
+
+    val newFileName = s"$fontName.s$subsetCharCount.${SHA256Hash.hash(subsetChars)}"
+    val newAbsFileNameWithoutExtension = s"${webRootDir.path}${File.separator}/subsettedFonts/$newFileName"
 
     val outputResult = fileFormats.map(format =>
+      File(s"""$newAbsFileNameWithoutExtension.$format""")
+    )
+
+    outputResult.filter(f => !f.exists)
+      .map(outputFile => {
       Future {
         val sb = new StringBuilder
         val processLogger = ProcessLogger(sb append _)
-        val outputFile = File(s"""$newAbsFileNameWithoutExtension.$format""").toAbsolute
-        val command = Seq(pyftsubset,
-          targetFontFileNameAbs.path,
-          s"""--text-file=${subsetCharFile.path}""",
-          s"""--flavor=$format""",
-          s"""--output-file=${outputFile.path}"""
-        )
+          val command = Seq(pyftsubset,
+            targetFontFileNameAbs.path,
+            s"""--text-file=${subsetCharFile.path}""",
+            s"""--flavor=${outputFile.extension}""",
+            s"""--output-file=${outputFile.path}"""
+          )
 
-        logger.debug(command.mkString(" "))
-        val process = command run processLogger
+        logger.debug( command.mkString(" "))
+        val process: Process = command run processLogger
         (process, outputFile, sb)
-      }
+      }(ec)
+    }
     )
       .map { t =>
         Try {
-          Await.result(t, 10.seconds)
+          Await.result(t, 15.seconds)
         }
       }
       .map {
@@ -96,5 +107,6 @@ class FontSubset @Inject()(config: Configuration, implicit val ec: ExecutionCont
 
     outputResult
   }
+
 }
 
