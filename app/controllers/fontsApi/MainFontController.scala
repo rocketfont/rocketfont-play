@@ -37,19 +37,21 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
   def index(fontParams: String, urlOpt: Option[String]): Action[AnyContent] = Action { request =>
 
     val refererOpt = request.headers.toSimpleMap.get("referer")
+    val referer = refererOpt.getOrElse("")
+
 
     val url = urlOpt.getOrElse("")
 
-    val isValidRequest = ValidateRequestWithReferer(refererOpt, url)
-    val referer = refererOpt.getOrElse("")
+//    val isValidRequest = ValidateRequestWithReferer(refererOpt, url)
 
-    val targetUrl = (isValidRequest, urlOpt) match {
-      case (true, Some(x)) if  Seq("cdn.localhost.rocketfont.net").exists(t => referer.contains(t)) =>
+    val targetUrl = urlOpt match {
+      case (Some(x)) if  Seq("cdn.localhost.rocketfont.net").exists(t => referer.contains(t)) =>
         access.apply(referer)
         Some(url)
-      case (true, _) => Some(url)
-      case (false, _) => throw new Exception("Invaild Request")
+      case Some(x) => Some(url)
+      case None => None
     }
+
 
 
     val (setAPageUnicodes, setBPageUnicodes) = urlOpt match {
