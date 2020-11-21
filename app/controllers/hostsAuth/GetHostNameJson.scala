@@ -1,5 +1,8 @@
 package controllers.hostsAuth
 
+import java.time.LocalDateTime
+import java.util
+
 import play.api.libs.json.{Json, OWrites}
 
 /**
@@ -7,7 +10,7 @@ import play.api.libs.json.{Json, OWrites}
  * application's home page.
  */
 
-case class GetHostNameJson(registeredHostSrl: Long, hostname: String)
+case class GetHostNameJson(registeredHostSrl: Long, hostname: String, created : LocalDateTime)
 
 object GetHostNameJson {
   implicit val json_writes: OWrites[GetHostNameJson] = Json.writes[GetHostNameJson]

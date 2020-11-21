@@ -14,7 +14,7 @@ trait Tables {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(AuthGroup.schema, AuthGroupPermissions.schema, AuthPermission.schema, AuthUser.schema, AuthUserGroups.schema, AuthUserUserPermissions.schema, DjangoAdminLog.schema, DjangoContentType.schema, DjangoMigrations.schema, DjangoSession.schema, Font.schema, FontAccessLog.schema, FontCopyright.schema, FontGroup.schema, FontGroupFont.schema, FontLicense.schema, FontUnicode.schema, FontUnicodeSetC.schema, FontUsageMeasureAccessLog.schema, Member.schema, RegisteredHostname.schema, RocketFontTest.schema, RocketFontTestResult.schema, UrlAccessLog.schema, UrlLetterLog.schema, Urls.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(AuthGroup.schema, AuthGroupPermissions.schema, AuthPermission.schema, AuthUser.schema, AuthUserGroups.schema, AuthUserUserPermissions.schema, DjangoAdminLog.schema, DjangoContentType.schema, DjangoMigrations.schema, DjangoSession.schema, Font.schema, FontAccessLog.schema, FontCopyright.schema, FontGroup.schema, FontGroupFont.schema, FontLicense.schema, FontPrice.schema, FontUnicode.schema, FontUnicodeSetC.schema, FontUsageMeasureAccessLog.schema, Member.schema, MemberCreditcard.schema, RegisteredHostname.schema, RocketFontTest.schema, RocketFontTestResult.schema, UrlAccessLog.schema, UrlLetterLog.schema, Urls.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -576,6 +576,47 @@ trait Tables {
   /** Collection-like TableQuery object for table FontLicense */
   lazy val FontLicense = new TableQuery(tag => new FontLicense(tag))
 
+  /** Entity class storing rows of table FontPrice
+   *  @param fontPriceSrl Database column font_price_srl SqlType(BIGINT), AutoInc, PrimaryKey
+   *  @param fontSrl Database column font_srl SqlType(BIGINT)
+   *  @param fontPricePerRequest Database column font_price_per_request SqlType(INT)
+   *  @param fontPricePerMinute Database column font_price_per_minute SqlType(INT)
+   *  @param created Database column created SqlType(DATETIME)
+   *  @param modified Database column modified SqlType(DATETIME) */
+  case class FontPriceRow(fontPriceSrl: Long, fontSrl: Long, fontPricePerRequest: Int, fontPricePerMinute: Int, created: java.sql.Timestamp, modified: java.sql.Timestamp)
+  /** GetResult implicit for fetching FontPriceRow objects using plain SQL queries */
+  implicit def GetResultFontPriceRow(implicit e0: GR[Long], e1: GR[Int], e2: GR[java.sql.Timestamp]): GR[FontPriceRow] = GR{
+    prs => import prs._
+    FontPriceRow.tupled((<<[Long], <<[Long], <<[Int], <<[Int], <<[java.sql.Timestamp], <<[java.sql.Timestamp]))
+  }
+  /** Table description of table font_price. Objects of this class serve as prototypes for rows in queries. */
+  class FontPrice(_tableTag: Tag) extends profile.api.Table[FontPriceRow](_tableTag, Some("rocket_font_main_db"), "font_price") {
+    def * = (fontPriceSrl, fontSrl, fontPricePerRequest, fontPricePerMinute, created, modified) <> (FontPriceRow.tupled, FontPriceRow.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(fontPriceSrl), Rep.Some(fontSrl), Rep.Some(fontPricePerRequest), Rep.Some(fontPricePerMinute), Rep.Some(created), Rep.Some(modified))).shaped.<>({r=>import r._; _1.map(_=> FontPriceRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column font_price_srl SqlType(BIGINT), AutoInc, PrimaryKey */
+    val fontPriceSrl: Rep[Long] = column[Long]("font_price_srl", O.AutoInc, O.PrimaryKey)
+    /** Database column font_srl SqlType(BIGINT) */
+    val fontSrl: Rep[Long] = column[Long]("font_srl")
+    /** Database column font_price_per_request SqlType(INT) */
+    val fontPricePerRequest: Rep[Int] = column[Int]("font_price_per_request")
+    /** Database column font_price_per_minute SqlType(INT) */
+    val fontPricePerMinute: Rep[Int] = column[Int]("font_price_per_minute")
+    /** Database column created SqlType(DATETIME) */
+    val created: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("created")
+    /** Database column modified SqlType(DATETIME) */
+    val modified: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("modified")
+
+    /** Foreign key referencing Font (database name font_price_font_font_srl_fk) */
+    lazy val fontFk = foreignKey("font_price_font_font_srl_fk", fontSrl, Font)(r => r.fontSrl, onUpdate=ForeignKeyAction.Restrict, onDelete=ForeignKeyAction.Restrict)
+
+    /** Uniqueness Index over (fontSrl) (database name font_price_font_srl_uindex) */
+    val index1 = index("font_price_font_srl_uindex", fontSrl, unique=true)
+  }
+  /** Collection-like TableQuery object for table FontPrice */
+  lazy val FontPrice = new TableQuery(tag => new FontPrice(tag))
+
   /** Entity class storing rows of table FontUnicode
    *  @param fontSrl Database column font_srl SqlType(BIGINT)
    *  @param fontUnicodeSrl Database column font_unicode_srl SqlType(BIGINT), AutoInc, PrimaryKey
@@ -734,6 +775,44 @@ trait Tables {
   /** Collection-like TableQuery object for table Member */
   lazy val Member = new TableQuery(tag => new Member(tag))
 
+  /** Entity class storing rows of table MemberCreditcard
+   *  @param creditCardSrl Database column credit_card_srl SqlType(BIGINT), AutoInc, PrimaryKey
+   *  @param memberSrl Database column member_srl SqlType(BIGINT)
+   *  @param billingKey Database column billing_key SqlType(VARCHAR), Length(64,true)
+   *  @param creditCardLast4digit Database column credit_card_last4digit SqlType(VARCHAR), Length(4,true)
+   *  @param created Database column created SqlType(DATETIME)
+   *  @param modified Database column modified SqlType(DATETIME) */
+  case class MemberCreditcardRow(creditCardSrl: Long, memberSrl: Long, billingKey: String, creditCardLast4digit: String, created: java.sql.Timestamp, modified: java.sql.Timestamp)
+  /** GetResult implicit for fetching MemberCreditcardRow objects using plain SQL queries */
+  implicit def GetResultMemberCreditcardRow(implicit e0: GR[Long], e1: GR[String], e2: GR[java.sql.Timestamp]): GR[MemberCreditcardRow] = GR{
+    prs => import prs._
+    MemberCreditcardRow.tupled((<<[Long], <<[Long], <<[String], <<[String], <<[java.sql.Timestamp], <<[java.sql.Timestamp]))
+  }
+  /** Table description of table member_creditcard. Objects of this class serve as prototypes for rows in queries. */
+  class MemberCreditcard(_tableTag: Tag) extends profile.api.Table[MemberCreditcardRow](_tableTag, Some("rocket_font_main_db"), "member_creditcard") {
+    def * = (creditCardSrl, memberSrl, billingKey, creditCardLast4digit, created, modified) <> (MemberCreditcardRow.tupled, MemberCreditcardRow.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(creditCardSrl), Rep.Some(memberSrl), Rep.Some(billingKey), Rep.Some(creditCardLast4digit), Rep.Some(created), Rep.Some(modified))).shaped.<>({r=>import r._; _1.map(_=> MemberCreditcardRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column credit_card_srl SqlType(BIGINT), AutoInc, PrimaryKey */
+    val creditCardSrl: Rep[Long] = column[Long]("credit_card_srl", O.AutoInc, O.PrimaryKey)
+    /** Database column member_srl SqlType(BIGINT) */
+    val memberSrl: Rep[Long] = column[Long]("member_srl")
+    /** Database column billing_key SqlType(VARCHAR), Length(64,true) */
+    val billingKey: Rep[String] = column[String]("billing_key", O.Length(64,varying=true))
+    /** Database column credit_card_last4digit SqlType(VARCHAR), Length(4,true) */
+    val creditCardLast4digit: Rep[String] = column[String]("credit_card_last4digit", O.Length(4,varying=true))
+    /** Database column created SqlType(DATETIME) */
+    val created: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("created")
+    /** Database column modified SqlType(DATETIME) */
+    val modified: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("modified")
+
+    /** Uniqueness Index over (memberSrl) (database name member_creditcard_member_srl_uindex) */
+    val index1 = index("member_creditcard_member_srl_uindex", memberSrl, unique=true)
+  }
+  /** Collection-like TableQuery object for table MemberCreditcard */
+  lazy val MemberCreditcard = new TableQuery(tag => new MemberCreditcard(tag))
+
   /** Entity class storing rows of table RegisteredHostname
    *  @param registredHostSrl Database column registred_host_srl SqlType(BIGINT), AutoInc, PrimaryKey
    *  @param memberSrl Database column member_srl SqlType(BIGINT)
@@ -765,6 +844,9 @@ trait Tables {
 
     /** Foreign key referencing Member (database name registered_domain_member_member_srl_fk) */
     lazy val memberFk = foreignKey("registered_domain_member_member_srl_fk", memberSrl, Member)(r => r.memberSrl, onUpdate=ForeignKeyAction.Restrict, onDelete=ForeignKeyAction.Restrict)
+
+    /** Uniqueness Index over (hostname) (database name registered_hostname_hostname_uindex) */
+    val index1 = index("registered_hostname_hostname_uindex", hostname, unique=true)
   }
   /** Collection-like TableQuery object for table RegisteredHostname */
   lazy val RegisteredHostname = new TableQuery(tag => new RegisteredHostname(tag))

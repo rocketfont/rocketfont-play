@@ -3,7 +3,6 @@ package controllers.hostsAuth
 import java.sql.Timestamp
 import java.time.LocalDateTime
 
-import controllers.DBExecutionContext
 import javax.inject._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{Json, OWrites}
@@ -12,6 +11,7 @@ import slick.jdbc.JdbcProfile
 import slick.jdbc.MySQLProfile.api._
 import undefined.AuthorizedAction
 import undefined.dataClass.JsonResponse
+import undefined.di.DBExecutionContext
 import undefined.exception.ValidationException
 import undefined.slick.Tables
 import undefined.slick.Tables.{RegisteredHostname, RegisteredHostnameRow}
@@ -40,17 +40,17 @@ class GetHostNamesController @Inject()(val controllerComponents: ControllerCompo
     val query =  RegisteredHostname
       .filter(t => t.memberSrl === memberSrl)
       .sortBy(t => t.hostname)
-      .map(t => (t.registredHostSrl, t.hostname))
+      .map(t => (t.registredHostSrl, t.hostname, t.created))
     val queryResult = db.run(query.result)
-    val getHostNameJson = queryResult.map((rows: Seq[(Long, String)]) => {
-      rows.map(row => GetHostNameJson.apply(row._1, row._2))
+    val getHostNameJson = queryResult.map(rows => {
+      rows.map(row => GetHostNameJson(row._1, row._2, row._3.toLocalDateTime))
     })(dbEc)
 
 
 
 
     getHostNameJson.transform{
-      case Success(value) => Success(Created(JsonResponse(Json.toJson(value))))
+      case Success(value) => Success(Ok(JsonResponse(Json.toJson(value))))
       case Failure(e) => Failure(e)
     }(ec)
   }

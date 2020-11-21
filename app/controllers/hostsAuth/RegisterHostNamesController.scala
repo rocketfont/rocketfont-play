@@ -3,7 +3,6 @@ package controllers.hostsAuth
 import java.sql.Timestamp
 import java.time.LocalDateTime
 
-import controllers.DBExecutionContext
 import javax.inject._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
@@ -18,6 +17,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import scala.util.matching.Regex
 import slick.jdbc.MySQLProfile.api._
+import undefined.di.DBExecutionContext
 import undefined.exception.ValidationException
 
 /**
@@ -40,9 +40,9 @@ class RegisterHostNamesController @Inject()(val controllerComponents: Controller
 
     val memberSrl = request.session.get("memberSrl").get.toLong
     val hosts = request.body
-      .hosts
+      .hostsText
       .trim.split('\n')
-      .map(t => t.trim).toSeq
+      .map(t => t.trim.toLowerCase).toSeq
 
     val validHosts = Future{
       val isValidHosts = hosts.map(h => domainRegex.matches(h))

@@ -1,22 +1,16 @@
-package controllers
+package controllers.fontsApi
 
-import java.net.{URL, URLDecoder}
-import java.nio.charset.StandardCharsets
-
+import akka.actor.ActorSystem
 import javax.inject._
 import play.api.Configuration
 import play.api.mvc._
 import scalikejdbc._
-import undefined.dataClass.{FontTuple, UnicodeSet}
-import undefined.fonts.{ABUnicodes, FontUnicodes, Fonts, ValidateRequestWithReferer}
-import undefined.{AccessAndUpdateURLOnDemand, FontSubset, UnicodeRangePrinter, UnicodeSetWithFile, dataClass}
-import akka.actor.ActorSystem
+import undefined.dataClass.UnicodeSet
+import undefined.fonts.{ABUnicodes, FontUnicodes, Fonts}
+import undefined._
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.io.File
-import undefined.AuthorizedAction
-
-import scala.util.matching.Regex
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -45,7 +39,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
 //    val isValidRequest = ValidateRequestWithReferer(refererOpt, url)
 
     val targetUrl = urlOpt match {
-      case (Some(x)) if  Seq("cdn.localhost.rocketfont.net").exists(t => referer.contains(t)) =>
+      case Some(x) if  Seq("cdn.localhost.rocketfont.net").exists(t => referer.contains(t)) =>
         access.apply(referer)
         Some(url)
       case Some(x) => Some(url)
@@ -112,10 +106,11 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
     })
 
 
-    val fontSubsetTool = new FontSubset(config, ac)
     val subsettedFontFilesByFontSrl: Map[Long, UnicodeSetWithFile] = groupedOrderedUnicodesByFontSrl.map { t =>
       val (fontSrl, unicodeSet) = t
       val fontInfo = fontsMap(fontSrl)
+
+      val fontSubsetTool = new FontSubset(config, ac)
 
       val groupedOrderedSubsetedFontFiles: Seq[(Seq[File], Seq[Int])] =
         unicodeSet

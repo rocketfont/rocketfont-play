@@ -3,7 +3,6 @@ package controllers.member
 import java.sql.{SQLException, SQLIntegrityConstraintViolationException, Timestamp}
 import java.time.LocalDateTime
 
-import controllers.DBExecutionContext
 import javax.inject._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsNull, JsNumber, JsObject}
@@ -11,6 +10,7 @@ import play.api.mvc._
 import slick.jdbc.JdbcProfile
 import slick.jdbc.MySQLProfile.api._
 import undefined.dataClass.JsonResponse
+import undefined.di.DBExecutionContext
 import undefined.exception.ValidationException
 import undefined.slick.Tables.{Member, MemberRow}
 

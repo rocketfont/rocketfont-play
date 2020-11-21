@@ -4,7 +4,6 @@ import java.sql.{SQLException, Timestamp}
 import java.time.LocalDateTime
 
 import akka.util.ByteString
-import controllers.DBExecutionContext
 import javax.inject._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsNull, JsNumber, JsObject, JsSuccess, JsValue}
@@ -13,6 +12,7 @@ import play.api.mvc._
 import slick.jdbc.JdbcProfile
 import slick.jdbc.MySQLProfile.api._
 import undefined.dataClass.JsonResponse
+import undefined.di.DBExecutionContext
 import undefined.exception.ValidationException
 import undefined.slick.Tables.{Member, MemberRow}
 

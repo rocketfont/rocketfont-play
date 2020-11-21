@@ -7,7 +7,6 @@ import java.time.LocalDateTime
 import java.util.Base64
 import java.util.function.IntUnaryOperator
 
-import controllers.DBExecutionContext
 import javax.inject._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
@@ -15,6 +14,7 @@ import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents, C
 import play.shaded.ahc.io.netty.handler.codec.base64.Base64Encoder
 import scalikejdbc._
 import undefined.dataClass.JsonResponse
+import undefined.di.DBExecutionContext
 import undefined.fonts.{Fonts, ValidateRequestWithReferer}
 
 import scala.async.Async.async

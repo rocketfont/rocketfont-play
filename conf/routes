@@ -11,14 +11,19 @@ POST     /backoffice/api/v1/member/login                    controllers.member.L
 POST     /backoffice/api/v1/member/signUp                   controllers.member.SignUp.index()
 GET      /backoffice/api/v1/member/logout                   controllers.member.Logout.index()
 
+GET     /backoffice/api/v1/member/hostname                   controllers.hostsAuth.GetHostNamesController.index()
 + nocsrf
-POST    /backoffice/api/v1/member/site                  controllers.hostsAuth.RegisterHostNamesController.index()
+POST    /backoffice/api/v1/member/hostname                  controllers.hostsAuth.RegisterHostNamesController.index()
++ nocsrf
+DELETE  /backoffice/api/v1/member/hostname                  controllers.hostsAuth.DeleteHostNamesController.index()
 
-GET    /backoffice/api/v1/member/site                  controllers.hostsAuth.GetHostNamesController.index()
++ nocsrf
+POST  /backoffice/api/v1/billing/card                  controllers.billing.CardUpsert.index()
+
 
 # An example controller showing a sample home page
 GET     /                                               controllers.HomeController.index()
-GET     /fonts/api/v1/fonts/*fontParameter            controllers.MainFontController.index(fontParameter : String,  url: Option[String])
+GET     /fonts/api/v1/fonts/*fontParameter            controllers.fontsApi.MainFontController.index(fontParameter : String,  url: Option[String])
 
 
 
@@ -26,7 +31,7 @@ GET     /fontUsageMeasure/api/v1/fontUsageMeasure/*fontParameter controllers.fon
 
 GET     /gomguk/getTestPages                    controllers.GomGukWebPagePrintController.index(srl : Long, fontParams : String, fontFamily : String)
 
-GET     /backoffice/api/v1/font                 controllers.FontsController.index()
+GET     /backoffice/api/v1/font                 controllers.fonts.FontsController.index()
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file                           controllers.Assets.versioned(path="/public", file: Asset)
