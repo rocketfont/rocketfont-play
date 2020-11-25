@@ -43,7 +43,7 @@ class GetHostNamesController @Inject()(val controllerComponents: ControllerCompo
       .map(t => (t.registredHostSrl, t.hostname, t.created))
     val queryResult = db.run(query.result)
     val getHostNameJson = queryResult.map(rows => {
-      rows.map(row => GetHostNameJson(row._1, row._2, row._3.toLocalDateTime))
+      rows.map(row => GetHostNameJson(row._1, row._2.reverse, row._3.toLocalDateTime))
     })(dbEc)
 
 

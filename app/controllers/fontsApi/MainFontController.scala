@@ -88,6 +88,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
         .apply()
     }
 
+
     val groupedOrderedUnicodesByFontSrl: Map[Long, UnicodeSet] = fontsUnicodes.map(t => {
 
       val (fontSrl, fontUnicodes) = t
@@ -137,7 +138,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
            | C : ${UnicodeRangePrinter.printUnicode(subsettedFontFamilyFiles.unicodeSet.setCUnicodes.unicodeSeq)}
            | D : ${UnicodeRangePrinter.printUnicode(subsettedFontFamilyFiles.unicodeSet.setDUnicodes.unicodeSeq)}
            | */
-           | """
+           | """.stripMargin
       val unicodeInfo2 =
         s"""
           |/*
@@ -179,7 +180,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
           sb2 :+ fontFace
         }
 
-      sb :+ unicodeInfo2 :+ fontSrlCss.mkString("\n")
+      sb :+ unicodeInfo1 :+ fontSrlCss.mkString("\n")
     }
     Ok(css.mkString("\n")).as(CSS)
       .withHeaders(("cache-control" -> "s-maxage=120,max-age=360000"))

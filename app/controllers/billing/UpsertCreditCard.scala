@@ -31,8 +31,9 @@ import scala.util.{Failure, Success}
 case class CardRequest(
                         cardNumber: String,
                         cardExpiry: String,
-                        birthday8: String,
-                        cardPassword2: String
+                        birthday6: String,
+                        cardPassword2: String,
+                        cardNickname : String
                       )
 
 object CardRequest {
@@ -70,7 +71,7 @@ class CardUpsert @Inject()(val controllerComponents: ControllerComponents,
       .withHttpHeaders("content-type" -> "application/json")
       .post(Json.toJson(ImportRequest()))
 
-    val billingKey = new SecureRandom().nextLong().toHexString
+    val billingKey = s"${memberSrl}-${new SecureRandom().nextLong().toHexString}"
 
 
     val bodyJson = request.body
@@ -83,7 +84,7 @@ class CardUpsert @Inject()(val controllerComponents: ControllerComponents,
       val dataToWrite = JsObject(Map(
         "card_number" -> JsString(bodyJson.cardNumber),
         "expiry" -> JsString(bodyJson.cardExpiry),
-        "birth" -> JsString(bodyJson.birthday8),
+        "birth" -> JsString(bodyJson.birthday6),
         "pwd_2digt" -> JsString(bodyJson.cardPassword2)
       ))
 
@@ -106,7 +107,7 @@ class CardUpsert @Inject()(val controllerComponents: ControllerComponents,
 
     val cardInsertF = billingKeyF.flatMap { billingKey =>
       val row = MemberCreditcardRow(
-        0, memberSrl, billingKey, bodyJson.cardNumber.takeRight(4),
+        0, memberSrl, billingKey, bodyJson.cardNickname,
         Timestamp.valueOf(LocalDateTime.now())
         , Timestamp.valueOf(LocalDateTime.now()))
       val query = MemberCreditcard.insertOrUpdate(row)

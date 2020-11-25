@@ -779,10 +779,10 @@ trait Tables {
    *  @param creditCardSrl Database column credit_card_srl SqlType(BIGINT), AutoInc, PrimaryKey
    *  @param memberSrl Database column member_srl SqlType(BIGINT)
    *  @param billingKey Database column billing_key SqlType(VARCHAR), Length(64,true)
-   *  @param creditCardLast4digit Database column credit_card_last4digit SqlType(VARCHAR), Length(4,true)
+   *  @param cardNickname Database column card_nickname SqlType(VARCHAR), Length(12,true)
    *  @param created Database column created SqlType(DATETIME)
    *  @param modified Database column modified SqlType(DATETIME) */
-  case class MemberCreditcardRow(creditCardSrl: Long, memberSrl: Long, billingKey: String, creditCardLast4digit: String, created: java.sql.Timestamp, modified: java.sql.Timestamp)
+  case class MemberCreditcardRow(creditCardSrl: Long, memberSrl: Long, billingKey: String, cardNickname: String, created: java.sql.Timestamp, modified: java.sql.Timestamp)
   /** GetResult implicit for fetching MemberCreditcardRow objects using plain SQL queries */
   implicit def GetResultMemberCreditcardRow(implicit e0: GR[Long], e1: GR[String], e2: GR[java.sql.Timestamp]): GR[MemberCreditcardRow] = GR{
     prs => import prs._
@@ -790,9 +790,9 @@ trait Tables {
   }
   /** Table description of table member_creditcard. Objects of this class serve as prototypes for rows in queries. */
   class MemberCreditcard(_tableTag: Tag) extends profile.api.Table[MemberCreditcardRow](_tableTag, Some("rocket_font_main_db"), "member_creditcard") {
-    def * = (creditCardSrl, memberSrl, billingKey, creditCardLast4digit, created, modified) <> (MemberCreditcardRow.tupled, MemberCreditcardRow.unapply)
+    def * = (creditCardSrl, memberSrl, billingKey, cardNickname, created, modified) <> (MemberCreditcardRow.tupled, MemberCreditcardRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(creditCardSrl), Rep.Some(memberSrl), Rep.Some(billingKey), Rep.Some(creditCardLast4digit), Rep.Some(created), Rep.Some(modified))).shaped.<>({r=>import r._; _1.map(_=> MemberCreditcardRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(creditCardSrl), Rep.Some(memberSrl), Rep.Some(billingKey), Rep.Some(cardNickname), Rep.Some(created), Rep.Some(modified))).shaped.<>({r=>import r._; _1.map(_=> MemberCreditcardRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column credit_card_srl SqlType(BIGINT), AutoInc, PrimaryKey */
     val creditCardSrl: Rep[Long] = column[Long]("credit_card_srl", O.AutoInc, O.PrimaryKey)
@@ -800,8 +800,8 @@ trait Tables {
     val memberSrl: Rep[Long] = column[Long]("member_srl")
     /** Database column billing_key SqlType(VARCHAR), Length(64,true) */
     val billingKey: Rep[String] = column[String]("billing_key", O.Length(64,varying=true))
-    /** Database column credit_card_last4digit SqlType(VARCHAR), Length(4,true) */
-    val creditCardLast4digit: Rep[String] = column[String]("credit_card_last4digit", O.Length(4,varying=true))
+    /** Database column card_nickname SqlType(VARCHAR), Length(12,true) */
+    val cardNickname: Rep[String] = column[String]("card_nickname", O.Length(12,varying=true))
     /** Database column created SqlType(DATETIME) */
     val created: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("created")
     /** Database column modified SqlType(DATETIME) */

@@ -17,8 +17,11 @@ POST    /backoffice/api/v1/member/hostname                  controllers.hostsAut
 + nocsrf
 DELETE  /backoffice/api/v1/member/hostname                  controllers.hostsAuth.DeleteHostNamesController.index()
 
+GET  /backoffice/api/v1/billing/card                  controllers.billing.RetrieveCreditCard.index()
 + nocsrf
 POST  /backoffice/api/v1/billing/card                  controllers.billing.CardUpsert.index()
++ nocsrf
+DELETE  /backoffice/api/v1/billing/card                  controllers.billing.DeleteCreditCard.index()
 
 
 # An example controller showing a sample home page
