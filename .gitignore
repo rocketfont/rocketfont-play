@@ -7,5 +7,5 @@ target
 /.settings
 /RUNNING_PID
 /worksheets/*.sc
-/rocketFont/webRoot
+/rocketFont/webRoot/subsettedFonts
 /conf/application.user.conf

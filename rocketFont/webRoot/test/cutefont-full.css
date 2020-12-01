@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'Cute Font';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: local('Cute Font'), local('CuteFont'),
+    url('/api/v1/fontFiles/test/CuteFont-Regular.woff2') format('woff2');
+}
+

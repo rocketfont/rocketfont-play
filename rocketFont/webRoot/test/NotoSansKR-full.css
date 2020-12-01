@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'Noto Sans KR';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: local('Noto Sans KR'), local('NotoSansKR'),
+    url('/api/v1/fontFiles/test/NotoSansKR-Regular-full.woff2') format('woff2');
+}
+
