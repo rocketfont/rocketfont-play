@@ -48,13 +48,15 @@ class Login @Inject()(val controllerComponents: ControllerComponents,
     val loginResult: Future[Long] = jsonBodyResult.flatMap { jsonBody =>
       val query = Member
         .filter(t => t.email === jsonBody.email)
-        .map(t => (t.memberSrl, t.password))
+        .map(t => (t.memberSrl, t.password, t.accountValidStatus))
         .take(1)
       val dbResultF = db.run(query.result).map(t => t.headOption)(dbEc)
 
       dbResultF.map {
         case None => throw new ValidationException("해당 회원의 정보가 존재하지 않습니다")
-        case Some((memberSrl, password)) if jsonBody.verifyPassword(password) => (memberSrl)
+        case Some((memberSrl, password, "VERIFIED"))
+          if jsonBody.verifyPassword(password)  => (memberSrl)
+        case Some((_, _, "EMAIL_AUTH")) => throw new ValidationException("이메일 인증이 아직 되지 않않습니다.")
         case _ => throw new ValidationException("비밀번호가 틀립니다.")
       }(ec)
     }(ec)
@@ -64,7 +66,9 @@ class Login @Inject()(val controllerComponents: ControllerComponents,
       case Success(memberSrl) =>
         val number = (memberSrl)
         val memberSrlJson = JsObject(Seq("memberSrl" -> JsNumber(number)))
-        Success(Ok(JsonResponse(memberSrlJson)).withSession("memberSrl" -> memberSrl.toString))
+        Success(Ok(JsonResponse(memberSrlJson))
+          .withSession("memberSrl" -> memberSrl.toString)
+        )
       case Failure(e: ValidationException) =>
         Success(BadRequest(JsonResponse(message = e.getMessage)))
       case Failure(exception) =>

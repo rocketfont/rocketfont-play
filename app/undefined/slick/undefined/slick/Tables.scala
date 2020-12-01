@@ -14,7 +14,7 @@ trait Tables {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(AuthGroup.schema, AuthGroupPermissions.schema, AuthPermission.schema, AuthUser.schema, AuthUserGroups.schema, AuthUserUserPermissions.schema, DjangoAdminLog.schema, DjangoContentType.schema, DjangoMigrations.schema, DjangoSession.schema, Font.schema, FontAccessLog.schema, FontCopyright.schema, FontGroup.schema, FontGroupFont.schema, FontLicense.schema, FontPrice.schema, FontUnicode.schema, FontUnicodeSetC.schema, FontUsageMeasureAccessLog.schema, Member.schema, MemberCreditcard.schema, RegisteredHostname.schema, RocketFontTest.schema, RocketFontTestResult.schema, UrlAccessLog.schema, UrlLetterLog.schema, Urls.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(AuthGroup.schema, AuthGroupPermissions.schema, AuthPermission.schema, AuthUser.schema, AuthUserGroups.schema, AuthUserUserPermissions.schema, DjangoAdminLog.schema, DjangoContentType.schema, DjangoMigrations.schema, DjangoSession.schema, Font.schema, FontAccessLog.schema, FontCopyright.schema, FontGroup.schema, FontGroupFont.schema, FontLicense.schema, FontPrice.schema, FontUnicode.schema, FontUnicodeSetC.schema, FontUsageMeasureAccessLog.schema, Member.schema, MemberCreditcard.schema, MemberEmailAuth.schema, RegisteredHostname.schema, RegisteredHostnamePending.schema, RocketFontTest.schema, RocketFontTestResult.schema, UrlAccessLog.schema, UrlLetterLog.schema, Urls.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -744,19 +744,20 @@ trait Tables {
    *  @param memberSrl Database column member_srl SqlType(BIGINT), AutoInc, PrimaryKey
    *  @param email Database column email SqlType(VARCHAR), Length(255,true)
    *  @param password Database column password SqlType(VARCHAR), Length(128,true)
+   *  @param accountValidStatus Database column account_valid_status SqlType(VARCHAR), Length(10,true)
    *  @param created Database column created SqlType(DATETIME)
    *  @param modified Database column modified SqlType(DATETIME) */
-  case class MemberRow(memberSrl: Long, email: String, password: String, created: java.sql.Timestamp, modified: java.sql.Timestamp)
+  case class MemberRow(memberSrl: Long, email: String, password: String, accountValidStatus: String, created: java.sql.Timestamp, modified: java.sql.Timestamp)
   /** GetResult implicit for fetching MemberRow objects using plain SQL queries */
   implicit def GetResultMemberRow(implicit e0: GR[Long], e1: GR[String], e2: GR[java.sql.Timestamp]): GR[MemberRow] = GR{
     prs => import prs._
-    MemberRow.tupled((<<[Long], <<[String], <<[String], <<[java.sql.Timestamp], <<[java.sql.Timestamp]))
+    MemberRow.tupled((<<[Long], <<[String], <<[String], <<[String], <<[java.sql.Timestamp], <<[java.sql.Timestamp]))
   }
   /** Table description of table member. Objects of this class serve as prototypes for rows in queries. */
   class Member(_tableTag: Tag) extends profile.api.Table[MemberRow](_tableTag, Some("rocket_font_main_db"), "member") {
-    def * = (memberSrl, email, password, created, modified) <> (MemberRow.tupled, MemberRow.unapply)
+    def * = (memberSrl, email, password, accountValidStatus, created, modified) <> (MemberRow.tupled, MemberRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(memberSrl), Rep.Some(email), Rep.Some(password), Rep.Some(created), Rep.Some(modified))).shaped.<>({r=>import r._; _1.map(_=> MemberRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(memberSrl), Rep.Some(email), Rep.Some(password), Rep.Some(accountValidStatus), Rep.Some(created), Rep.Some(modified))).shaped.<>({r=>import r._; _1.map(_=> MemberRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column member_srl SqlType(BIGINT), AutoInc, PrimaryKey */
     val memberSrl: Rep[Long] = column[Long]("member_srl", O.AutoInc, O.PrimaryKey)
@@ -764,6 +765,8 @@ trait Tables {
     val email: Rep[String] = column[String]("email", O.Length(255,varying=true))
     /** Database column password SqlType(VARCHAR), Length(128,true) */
     val password: Rep[String] = column[String]("password", O.Length(128,varying=true))
+    /** Database column account_valid_status SqlType(VARCHAR), Length(10,true) */
+    val accountValidStatus: Rep[String] = column[String]("account_valid_status", O.Length(10,varying=true))
     /** Database column created SqlType(DATETIME) */
     val created: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("created")
     /** Database column modified SqlType(DATETIME) */
@@ -813,6 +816,44 @@ trait Tables {
   /** Collection-like TableQuery object for table MemberCreditcard */
   lazy val MemberCreditcard = new TableQuery(tag => new MemberCreditcard(tag))
 
+  /** Entity class storing rows of table MemberEmailAuth
+   *  @param memberEmailAuthSrl Database column member_email_auth_srl SqlType(BIGINT), AutoInc, PrimaryKey
+   *  @param memberSrl Database column member_srl SqlType(BIGINT)
+   *  @param token Database column token SqlType(VARCHAR), Length(64,true)
+   *  @param expire Database column expire SqlType(DATETIME)
+   *  @param created Database column created SqlType(DATETIME)
+   *  @param modified Database column modified SqlType(DATETIME) */
+  case class MemberEmailAuthRow(memberEmailAuthSrl: Long, memberSrl: Long, token: String, expire: java.sql.Timestamp, created: java.sql.Timestamp, modified: java.sql.Timestamp)
+  /** GetResult implicit for fetching MemberEmailAuthRow objects using plain SQL queries */
+  implicit def GetResultMemberEmailAuthRow(implicit e0: GR[Long], e1: GR[String], e2: GR[java.sql.Timestamp]): GR[MemberEmailAuthRow] = GR{
+    prs => import prs._
+    MemberEmailAuthRow.tupled((<<[Long], <<[Long], <<[String], <<[java.sql.Timestamp], <<[java.sql.Timestamp], <<[java.sql.Timestamp]))
+  }
+  /** Table description of table member_email_auth. Objects of this class serve as prototypes for rows in queries. */
+  class MemberEmailAuth(_tableTag: Tag) extends profile.api.Table[MemberEmailAuthRow](_tableTag, Some("rocket_font_main_db"), "member_email_auth") {
+    def * = (memberEmailAuthSrl, memberSrl, token, expire, created, modified) <> (MemberEmailAuthRow.tupled, MemberEmailAuthRow.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(memberEmailAuthSrl), Rep.Some(memberSrl), Rep.Some(token), Rep.Some(expire), Rep.Some(created), Rep.Some(modified))).shaped.<>({r=>import r._; _1.map(_=> MemberEmailAuthRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column member_email_auth_srl SqlType(BIGINT), AutoInc, PrimaryKey */
+    val memberEmailAuthSrl: Rep[Long] = column[Long]("member_email_auth_srl", O.AutoInc, O.PrimaryKey)
+    /** Database column member_srl SqlType(BIGINT) */
+    val memberSrl: Rep[Long] = column[Long]("member_srl")
+    /** Database column token SqlType(VARCHAR), Length(64,true) */
+    val token: Rep[String] = column[String]("token", O.Length(64,varying=true))
+    /** Database column expire SqlType(DATETIME) */
+    val expire: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("expire")
+    /** Database column created SqlType(DATETIME) */
+    val created: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("created")
+    /** Database column modified SqlType(DATETIME) */
+    val modified: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("modified")
+
+    /** Foreign key referencing Member (database name member_email_auth_member_member_srl_fk) */
+    lazy val memberFk = foreignKey("member_email_auth_member_member_srl_fk", memberSrl, Member)(r => r.memberSrl, onUpdate=ForeignKeyAction.Restrict, onDelete=ForeignKeyAction.Restrict)
+  }
+  /** Collection-like TableQuery object for table MemberEmailAuth */
+  lazy val MemberEmailAuth = new TableQuery(tag => new MemberEmailAuth(tag))
+
   /** Entity class storing rows of table RegisteredHostname
    *  @param registredHostSrl Database column registred_host_srl SqlType(BIGINT), AutoInc, PrimaryKey
    *  @param memberSrl Database column member_srl SqlType(BIGINT)
@@ -850,6 +891,47 @@ trait Tables {
   }
   /** Collection-like TableQuery object for table RegisteredHostname */
   lazy val RegisteredHostname = new TableQuery(tag => new RegisteredHostname(tag))
+
+  /** Entity class storing rows of table RegisteredHostnamePending
+   *  @param pendingHostnameSrl Database column pending_hostname_srl SqlType(BIGINT), AutoInc, PrimaryKey
+   *  @param memberSrl Database column member_srl SqlType(BIGINT)
+   *  @param hostname Database column hostname SqlType(VARCHAR), Length(255,true)
+   *  @param dnsTxtRecord Database column dns_txt_record SqlType(VARCHAR), Length(255,true)
+   *  @param expires Database column expires SqlType(DATETIME)
+   *  @param created Database column created SqlType(DATETIME)
+   *  @param modified Database column modified SqlType(DATETIME) */
+  case class RegisteredHostnamePendingRow(pendingHostnameSrl: Long, memberSrl: Long, hostname: String, dnsTxtRecord: String, expires: java.sql.Timestamp, created: java.sql.Timestamp, modified: java.sql.Timestamp)
+  /** GetResult implicit for fetching RegisteredHostnamePendingRow objects using plain SQL queries */
+  implicit def GetResultRegisteredHostnamePendingRow(implicit e0: GR[Long], e1: GR[String], e2: GR[java.sql.Timestamp]): GR[RegisteredHostnamePendingRow] = GR{
+    prs => import prs._
+    RegisteredHostnamePendingRow.tupled((<<[Long], <<[Long], <<[String], <<[String], <<[java.sql.Timestamp], <<[java.sql.Timestamp], <<[java.sql.Timestamp]))
+  }
+  /** Table description of table registered_hostname_pending. Objects of this class serve as prototypes for rows in queries. */
+  class RegisteredHostnamePending(_tableTag: Tag) extends profile.api.Table[RegisteredHostnamePendingRow](_tableTag, Some("rocket_font_main_db"), "registered_hostname_pending") {
+    def * = (pendingHostnameSrl, memberSrl, hostname, dnsTxtRecord, expires, created, modified) <> (RegisteredHostnamePendingRow.tupled, RegisteredHostnamePendingRow.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(pendingHostnameSrl), Rep.Some(memberSrl), Rep.Some(hostname), Rep.Some(dnsTxtRecord), Rep.Some(expires), Rep.Some(created), Rep.Some(modified))).shaped.<>({r=>import r._; _1.map(_=> RegisteredHostnamePendingRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column pending_hostname_srl SqlType(BIGINT), AutoInc, PrimaryKey */
+    val pendingHostnameSrl: Rep[Long] = column[Long]("pending_hostname_srl", O.AutoInc, O.PrimaryKey)
+    /** Database column member_srl SqlType(BIGINT) */
+    val memberSrl: Rep[Long] = column[Long]("member_srl")
+    /** Database column hostname SqlType(VARCHAR), Length(255,true) */
+    val hostname: Rep[String] = column[String]("hostname", O.Length(255,varying=true))
+    /** Database column dns_txt_record SqlType(VARCHAR), Length(255,true) */
+    val dnsTxtRecord: Rep[String] = column[String]("dns_txt_record", O.Length(255,varying=true))
+    /** Database column expires SqlType(DATETIME) */
+    val expires: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("expires")
+    /** Database column created SqlType(DATETIME) */
+    val created: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("created")
+    /** Database column modified SqlType(DATETIME) */
+    val modified: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("modified")
+
+    /** Foreign key referencing Member (database name registered_hostname_pending_member_member_srl_fk) */
+    lazy val memberFk = foreignKey("registered_hostname_pending_member_member_srl_fk", memberSrl, Member)(r => r.memberSrl, onUpdate=ForeignKeyAction.Restrict, onDelete=ForeignKeyAction.Restrict)
+  }
+  /** Collection-like TableQuery object for table RegisteredHostnamePending */
+  lazy val RegisteredHostnamePending = new TableQuery(tag => new RegisteredHostnamePending(tag))
 
   /** Entity class storing rows of table RocketFontTest
    *  @param srl Database column srl SqlType(INT), AutoInc, PrimaryKey

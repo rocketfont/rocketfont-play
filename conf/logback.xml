@@ -34,7 +34,7 @@
     <logger name="play" level="INFO"/>
     <logger name="application" level="DEBUG"/>
     <logger name="undefined" level="DEBUG"/>
-    <logger name="org.jdbcdslog.StatementLogger" level="INFO" /> <!-- Will log all statements -->
+    <logger name="slick.jdbc.JdbcBackend.statement" level="DEBUG"/>
 
 
     <root level="WARN">

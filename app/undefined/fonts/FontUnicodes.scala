@@ -1,17 +1,16 @@
 package undefined.fonts
 
 case class FontUnicodes(unicodeSeq: Seq[Int]) {
-  def minus(set: Set[Int]): FontUnicodes = {
-    FontUnicodes(unicodeSeq.filter(t => !set.contains(t)))
-  }
-  def minus(seq: Seq[Int]): FontUnicodes = {
-    FontUnicodes(unicodeSeq.filter(t => !seq.contains(t)))
+
+  val unicodeSet: Set[Int] = unicodeSeq.toSet
+
+  private def minus(set: Set[Int]): FontUnicodes = {
+    FontUnicodes(unicodeSeq.toSet.diff(set).toSeq)
   }
   def minus(fontUnicodes: FontUnicodes) : FontUnicodes = {
-    minus(fontUnicodes.unicodeSeq)
+    minus(fontUnicodes.unicodeSet)
   }
-
   def intersect(set : Set[Int]) : FontUnicodes = {
-    FontUnicodes(unicodeSeq.filter(set.contains))
+    FontUnicodes(unicodeSet.intersect(set).toSeq)
   }
 }

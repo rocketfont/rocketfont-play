@@ -5,6 +5,7 @@ import java.sql.Timestamp
 import java.time.LocalDateTime
 
 import javax.inject._
+import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json
 import play.api.libs.json.{JsObject, JsString, Json, OWrites, Reads}
@@ -18,39 +19,18 @@ import undefined.slick.Tables.{MemberCreditcard, MemberCreditcardRow}
 import scala.async.Async.async
 import scala.concurrent.ExecutionContext
 import slick.jdbc.MySQLProfile.api._
+import undefined.billing.{CardRequest, ImportRequest}
 import undefined.di.DBExecutionContext
 import undefined.exception.ValidationException
 
 import scala.util.{Failure, Success}
 
-/**
- * This controller creates an `Action` to handle HTTP requests to the
- * application's home page.
- */
-
-case class CardRequest(
-                        cardNumber: String,
-                        cardExpiry: String,
-                        birthday6: String,
-                        cardPassword2: String,
-                        cardNickname : String
-                      )
-
-object CardRequest {
-  implicit val reads: Reads[CardRequest] = Json.reads[CardRequest]
-}
-
-case class ImportRequest(imp_key: String = "4715368713226369",
-                         imp_secret: String = "u90tyzq2lBBGfqrnNGAu4bo7TW6wlCMQMMkllKnHmYoCpP0dwAHBM6IF2PcosYfeLzz6kXOGWcil1izy")
-
-object ImportRequest {
-  implicit val writes: OWrites[ImportRequest] = Json.writes[ImportRequest]
-}
 
 @Singleton
 class CardUpsert @Inject()(val controllerComponents: ControllerComponents,
                            protected val dbConfigProvider: DatabaseConfigProvider,
                            val authorizeAction: AuthorizedAction,
+                           val config : Configuration,
                            val ws: WSClient,
                            val ec: ExecutionContext,
                            val dbEc : DBExecutionContext) extends BaseController
@@ -69,7 +49,7 @@ class CardUpsert @Inject()(val controllerComponents: ControllerComponents,
 
     val tokenRequest = ws.url("https://api.iamport.kr/users/getToken")
       .withHttpHeaders("content-type" -> "application/json")
-      .post(Json.toJson(ImportRequest()))
+      .post(Json.toJson(ImportRequest(config.get[String]("rocketFont.Iamport.imp_key"), config.get[String]("rocketFont.Iamport.imp_secret"))))
 
     val billingKey = s"${memberSrl}-${new SecureRandom().nextLong().toHexString}"
 

@@ -11,11 +11,26 @@ POST     /backoffice/api/v1/member/login                    controllers.member.L
 POST     /backoffice/api/v1/member/signUp                   controllers.member.SignUp.index()
 GET      /backoffice/api/v1/member/logout                   controllers.member.Logout.index()
 
+GET      /backoffice/api/v1/member/verifyEmail/:memberSrl/:token         controllers.member.EmailVerifyController.index(memberSrl : Long, token : String)
+
+
+
+
+
 GET     /backoffice/api/v1/member/hostname                   controllers.hostsAuth.GetHostNamesController.index()
 + nocsrf
-POST    /backoffice/api/v1/member/hostname                  controllers.hostsAuth.RegisterHostNamesController.index()
-+ nocsrf
 DELETE  /backoffice/api/v1/member/hostname                  controllers.hostsAuth.DeleteHostNamesController.index()
+
++ nocsrf
+POST    /backoffice/api/v1/member/pendingHostname                  controllers.hostsAuth.RegisterPendingHostnamesController.index()
+GET     /backoffice/api/v1/member/pendingHostname                   controllers.hostsAuth.GetRegisteredPendingHostnameController.index()
++ nocsrf
+DELETE     /backoffice/api/v1/member/pendingHostname/:pendingHostNameSrl      controllers.hostsAuth.DeletePendingHostnameController.index(pendingHostNameSrl: Long)
+
++ nocsrf
+PUT     /backoffice/api/v1/member/hostname/:pendingHostNameSrl      controllers.hostsAuth.VerifyHostnameController.index(pendingHostNameSrl: Long)
+
+
 
 GET  /backoffice/api/v1/billing/card                  controllers.billing.RetrieveCreditCard.index()
 + nocsrf
@@ -26,7 +41,7 @@ DELETE  /backoffice/api/v1/billing/card                  controllers.billing.Del
 
 # An example controller showing a sample home page
 GET     /                                               controllers.HomeController.index()
-GET     /fonts/api/v1/fonts/*fontParameter            controllers.fontsApi.MainFontController.index(fontParameter : String,  url: Option[String])
+GET     /fonts/api/v1/fonts/*fontParameter            controllers.fontsApi.MainFontController.index(fontParameter : String,  url: Option[String], fontDisplay : String = "swap")
 
 
 

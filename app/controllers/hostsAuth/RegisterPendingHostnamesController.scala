@@ -1,7 +1,9 @@
 package controllers.hostsAuth
 
+import java.security.SecureRandom
 import java.sql.Timestamp
 import java.time.LocalDateTime
+import java.util.Base64
 
 import javax.inject._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -10,7 +12,7 @@ import play.api.mvc._
 import slick.jdbc.JdbcProfile
 import undefined.dataClass.JsonResponse
 import undefined.AuthorizedAction
-import undefined.slick.Tables.{RegisteredHostname, RegisteredHostnameRow}
+import undefined.slick.Tables.{RegisteredHostname, RegisteredHostnamePending, RegisteredHostnamePendingRow, RegisteredHostnameRow}
 
 import scala.async.Async.async
 import scala.concurrent.{ExecutionContext, Future}
@@ -26,17 +28,17 @@ import undefined.exception.ValidationException
  */
 
 @Singleton
-class RegisterHostNamesController @Inject()(val controllerComponents: ControllerComponents,
-                                            protected val dbConfigProvider: DatabaseConfigProvider,
-                                            val authorizedAction: AuthorizedAction,
-                                            val dbEc: DBExecutionContext,
-                                            val ec: ExecutionContext) extends BaseController
+class RegisterPendingHostnamesController @Inject()(val controllerComponents: ControllerComponents,
+                                                   protected val dbConfigProvider: DatabaseConfigProvider,
+                                                   val authorizedAction: AuthorizedAction,
+                                                   val dbEc: DBExecutionContext,
+                                                   val ec: ExecutionContext) extends BaseController
   with HasDatabaseConfigProvider[JdbcProfile] {
 
 
   private val domainRegex: Regex = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$".r
 
-  def index(): Action[HostsRequest] = authorizedAction(parse.json[HostsRequest]).async { implicit request =>
+  def index(): Action[RegisterPendingHostnameRequest] = authorizedAction(parse.json[RegisterPendingHostnameRequest]).async { implicit request =>
 
     val memberSrl = request.session.get("memberSrl").get.toLong
     val hosts = request.body
@@ -55,13 +57,18 @@ class RegisterHostNamesController @Inject()(val controllerComponents: Controller
       hosts
     }(ec)
 
+    val sr = new SecureRandom()
+
     val insertResult  = validHosts.map{ host =>
       val rowsToInsert = host.map{h =>
-        RegisteredHostnameRow(1L, memberSrl, h.reverse,
-          Timestamp.valueOf(LocalDateTime.now()), Timestamp.valueOf(LocalDateTime.now()) )
+        val randomHex = sr.nextLong().toHexString + sr.nextLong().toHexString
+
+        val timestampNow = Timestamp.valueOf(LocalDateTime.now())
+        val expiresTimeStamp = Timestamp.valueOf(LocalDateTime.now().plusDays(3))
+        RegisteredHostnamePendingRow(1L, memberSrl, h, randomHex, expiresTimeStamp, timestampNow, timestampNow)
       }
       db.run(
-        RegisteredHostname ++=  rowsToInsert
+        RegisteredHostnamePending ++=  rowsToInsert
       )
     }(ec)
 

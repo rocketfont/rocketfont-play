@@ -8,3 +8,4 @@ target
 /RUNNING_PID
 /worksheets/*.sc
 /rocketFont/webRoot
+/conf/application.user.conf

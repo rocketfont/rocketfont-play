@@ -13,25 +13,29 @@ libraryDependencies ++= Seq(guice,
   //  jdbc,
   ws, ehcache)
 libraryDependencies += "org.jsoup" % "jsoup" % "1.13.1"
-libraryDependencies += "com.h2database" % "h2" % "1.4.200"
 libraryDependencies += "org.mariadb.jdbc" % "mariadb-java-client" % "2.7.0"
 
 libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-slick" % "5.0.0",
   //  "com.typesafe.play" %% "play-slick-evolutions" % "5.0.0",
   "com.typesafe.slick" %% "slick-codegen" % "3.3.3",
-
 )
+libraryDependencies += "dnsjava" % "dnsjava" % "3.3.1"
 libraryDependencies ++= Seq(
   "org.scalikejdbc" %% "scalikejdbc" % "3.5.0",
   "org.scalikejdbc" %% "scalikejdbc-config" % "3.5.0",
   //  "org.scalikejdbc" %% "scalikejdbc-play-initializer" % "2.8.0-scalikejdbc-3.5"
   "org.scalikejdbc" %% "scalikejdbc-play-dbapi-adapter" % "2.8.0-scalikejdbc-3.5",
+  "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.0",
 )
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-async" % "0.10.0"
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided
 libraryDependencies += "com.github.t3hnar" %% "scala-bcrypt" % "4.3.0"
+libraryDependencies += "software.amazon.awssdk" % "bom" % "2.15.35" pomOnly()
+libraryDependencies += "software.amazon.awssdk" % "ses" % "2.15.35"
+libraryDependencies += "com.sun.mail" % "javax.mail" % "1.6.2"
+
 
 
 

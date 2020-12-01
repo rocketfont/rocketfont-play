@@ -41,9 +41,11 @@ case class UnicodeSet
 
 
     //noinspection ScalaStylek
-    val result = ((Nil :+ setAUnicodes.unicodeSeq
+    val result = (
+      (Nil :+ setAUnicodes.unicodeSeq
       :+ setBUnicodes.unicodeSeq)
-      ++ CDUnicodes.grouped(200)).filter(t => t.nonEmpty)
+      ++ CDUnicodes.grouped(200)
+      ).filter(t => t.nonEmpty)
 
     result
   }
