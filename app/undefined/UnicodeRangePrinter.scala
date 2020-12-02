@@ -2,6 +2,7 @@ package undefined
 
 import undefined.UnicodeRangePrinter.printInternal
 
+import scala.::
 import scala.collection.{SortedSet, mutable}
 
 sealed trait SealedUnicodeRange
@@ -33,12 +34,11 @@ object UnicodeRangePrinter {
 
   private def printInternal(unicodeSeq: Seq[Int]): Iterable[SealedUnicodeRange] = {
 
-    val sortedUnicodeSeq = unicodeSeq.sorted.toVector
-
-    val seq = mutable.Buffer.empty[SealedUnicodeRange]
+    val sortedUnicodeSeq = unicodeSeq.sorted.toArray
+    var vector = Seq.empty[SealedUnicodeRange]
 
     var i = 0
-    val size = sortedUnicodeSeq.size
+    val size = sortedUnicodeSeq.length
     while (i < size) {
 
       var start = -1
@@ -67,10 +67,10 @@ object UnicodeRangePrinter {
       else {
         RangeUnicode(start, end)
       }
-      seq += str
+      vector = str +: vector
       i = i + 1
     }
-    seq
+    vector.reverse
   }
 }
 

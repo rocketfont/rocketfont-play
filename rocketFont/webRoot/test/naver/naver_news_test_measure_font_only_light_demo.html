@@ -6,21 +6,22 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <style>
         * {
-            font-family: 'Noto Sans KR', serif !important
+            font-family: 'Do Hyeon', serif !important
         }
     </style>
+    
     <script>
-        ((e, t, k, w, n) => {
-            'use strict'; var c = document, r = c.createElement('link'), E = encodeURIComponent;
-            var a = k+'?url=' + E(c.URL), s = t + '/' + a, l = e + '/' + a;
-            if(w) {s += E(w);}
-            r.rel = 'stylesheet'; r.href = s; c.head.appendChild(r);
-            var f = () => {fetch(l, {importance: 'low', credentials: 'include'})};
-            window.addEventListener('load', () => {f(), setInterval(f, 1e3 * n)})
-        })('https://font-measure.localhost.rocketfont.net/fontUsageMeasure/api/v1/fontUsageMeasure',
-                'https://cdn.localhost.rocketfont.net/fonts/api/v1/fonts',
-                'Noto+Sans+KR:400:normal','', 60);
-    </script>
+((e, t, k, w, n) => {
+    'use strict'; var c = document, r = c.createElement('link'), E = encodeURIComponent;
+    var a = k+'?url=' + E(c.URL), s = t + '/' + a, l = e + '/' + a;
+    if(w) {s += E(w);}
+    r.rel = 'stylesheet'; r.href = s; c.head.appendChild(r);
+    var f = () => {fetch(l, {importance: 'low', credentials: 'include'})};
+    window.addEventListener('load', () => {f(), setInterval(f, 1e3 * n)})
+})('https://font-measure.localhost.rocketfont.net/fontUsageMeasure/api/v1/fontUsageMeasure',
+   'https://cdn.localhost.rocketfont.net/fonts/api/v1/fonts',
+   'Do+Hyeon:400:normal','', 60);
+</script>
 
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">

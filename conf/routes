@@ -39,6 +39,9 @@ POST  /backoffice/api/v1/billing/card                  controllers.billing.CardU
 DELETE  /backoffice/api/v1/billing/card                  controllers.billing.DeleteCreditCard.index()
 
 
+GET     /backoffice/api/v1/billing/monthlyCharge            controllers.billing.RetrieveUsageChargeController.index(from: String, to : String)
+
+
 # An example controller showing a sample home page
 GET     /                                               controllers.HomeController.index()
 GET     /fonts/api/v1/fonts/*fontParameter            controllers.fontsApi.MainFontController.index(fontParameter : String,  url: Option[String], fontDisplay : String = "swap")

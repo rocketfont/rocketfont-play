@@ -129,6 +129,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
     //write css
 
     // 폰트 종류당
+    var idx = 0;
     val css = subsettedFontFilesByFontSrl.foldLeft(Seq.empty[String]) { (sb, a) =>
 
       // key fontSrl
@@ -140,7 +141,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
        * val isPrintABCLiteralCharacterRangeInCSS = config.get[Boolean]("rocketFont.fontCSS.printABCLiteralCharacterRange")
        * val isPrintABCUnicodeRange = c
        */
-      val unicodeInfoRange = if(isPrintABCLiteralCharacterRangeInCSS) {
+      val unicodeInfoRange = if(isPrintABCUnicodeRange ) {
         s"""/*
            | FontName : ${localFontName}
            | Unicodes :
@@ -152,7 +153,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
            | """.stripMargin
       } else { ""}
 
-      val unicodeInfoCharacter = if(isPrintABCUnicodeRange) {
+      val unicodeInfoCharacter = if(isPrintABCLiteralCharacterRangeInCSS) {
         s"""
            |/*
            | FontName : ${localFontName}
@@ -179,9 +180,12 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
           }.mkString("\n")
 
 
+          idx +=1
           val localFontNameNoSpace = localFontName.replaceAll(" ", "")
           val fontFace =
-            s"""@font-face {
+            s"""
+               |/* [$idx]*/
+               |@font-face {
                |  font-family: '${fontInfo.fontFamilyName}';
                |  font-style: normal;
                |  font-weight: ${fontInfo.fontWeight};
@@ -193,12 +197,12 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
                |""".stripMargin
 
 
-          sb2 :+ fontFace
+          fontFace +: sb2
         }
 
-      (sb :+ unicodeInfoRange :+ unicodeInfoCharacter) ++ fontSrlCss
+      fontSrlCss.reverse ++ (unicodeInfoRange +: (unicodeInfoCharacter +: sb))
     }
-    Ok(css.mkString("\n")).as(CSS)
-      .withHeaders(("cache-control" -> "s-maxage=120,max-age=360000"))
+    Ok(css.reverse.mkString("\n")).as(CSS)
+//      .withHeaders(("cache-control" -> "s-maxage=120,max-age=864000"))
   }
 }

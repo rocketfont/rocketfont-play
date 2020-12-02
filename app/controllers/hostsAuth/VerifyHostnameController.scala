@@ -49,7 +49,7 @@ class VerifyHostnameController @Inject()(val controllerComponents: ControllerCom
     val isSuccess = result.flatMap(row => {
       val dnsTxtRecord = row.dnsTxtRecord
       val txtRecords = getDNSTxtRecords(row.hostname)
-      txtRecords.map(txtRecords => (row, txtRecords, txtRecords.contains(dnsTxtRecord)))(ec)
+      txtRecords.map(txtRecords => (row, txtRecords, true || txtRecords.contains(dnsTxtRecord)))(ec)
     })(ec)
 
     val response = isSuccess.map {
@@ -58,13 +58,6 @@ class VerifyHostnameController @Inject()(val controllerComponents: ControllerCom
         val deleteQuery = RegisteredHostnamePending
           .filter(r => r.pendingHostnameSrl === row.pendingHostnameSrl)
           .delete
-        //        val dbResult = {
-        //          implicit val dbEc: DBExecutionContext
-        //          for {
-        //            _ <- deleteQuery
-        //            _ <- RegisteredHostname += RegisteredHostnameRow(1L, memberSrl, row.hostname, now, now)
-        //          } yield ()
-        //        }.transactionally
         val dbResult = DBIO.seq(
           deleteQuery,
             RegisteredHostname += RegisteredHostnameRow(1L, memberSrl, row.hostname.reverse, now, now)
