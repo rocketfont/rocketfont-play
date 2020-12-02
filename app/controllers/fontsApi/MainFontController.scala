@@ -35,6 +35,8 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
     val fontDisplayAllowed = Seq("auto", "block","swap", "fallback", "optional")
     val fontDisplayInAllowed = fontDisplayAllowed.contains(fontDisplayQueryString)
     val fontDisplay = if(fontDisplayInAllowed) fontDisplayQueryString else "swap"
+    val isPrintABCLiteralCharacterRangeInCSS = config.get[Boolean]("rocketFont.fontCSS.printABCLiteralCharacterRange")
+    val isPrintABCUnicodeRange = config.get[Boolean]("rocketFont.fontCSS.printABCUnicodeRange")
 
 
 
@@ -134,26 +136,37 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
       val fontInfo = fontsMap(fontSrl)
       val localFontName = fontInfo.toLocalFontName
 
-      val unicodeInfo1 =
+      /**
+       * val isPrintABCLiteralCharacterRangeInCSS = config.get[Boolean]("rocketFont.fontCSS.printABCLiteralCharacterRange")
+       * val isPrintABCUnicodeRange = c
+       */
+      val unicodeInfoRange = if(isPrintABCLiteralCharacterRangeInCSS) {
         s"""/*
            | FontName : ${localFontName}
+           | Unicodes :
            | A : ${UnicodeRangePrinter.printUnicode(subsettedFontFamilyFiles.unicodeSet.setAUnicodes.unicodeSeq)}
            | B : ${UnicodeRangePrinter.printUnicode(subsettedFontFamilyFiles.unicodeSet.setBUnicodes.unicodeSeq)}
            | C : ${UnicodeRangePrinter.printUnicode(subsettedFontFamilyFiles.unicodeSet.setCUnicodes.unicodeSeq)}
            | D : ${UnicodeRangePrinter.printUnicode(subsettedFontFamilyFiles.unicodeSet.setDUnicodes.unicodeSeq)}
-           | */
+           |*/
            | """.stripMargin
-//      val unicodeInfo2 =
-//        s"""
-//          |/*
-//          |FontName : ${localFontName}
-//          | A : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setAUnicodes.unicodeSeq)}
-//          | B : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setBUnicodes.unicodeSeq)}
-//          | C : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setCUnicodes.unicodeSeq)}
-//          | D : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setDUnicodes.unicodeSeq)}
-//          | */
-//          |""".stripMargin
+      } else { ""}
 
+      val unicodeInfoCharacter = if(isPrintABCUnicodeRange) {
+        s"""
+           |/*
+           | FontName : ${localFontName}
+           | Literal :
+           | A : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setAUnicodes.unicodeSeq)}
+           | B : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setBUnicodes.unicodeSeq)}
+           | C : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setCUnicodes.unicodeSeq)}
+           | D : ${UnicodeRangePrinter.printLiteral(subsettedFontFamilyFiles.unicodeSet.setDUnicodes.unicodeSeq)}
+           |*/
+           |""".stripMargin
+        }
+      else { ""}
+
+//
       val fontSrlCss = subsettedFontFamilyFiles
         .fileWithUnicodes
         .foldLeft(Seq.empty[String]) { (sb2, subsettedFontFile) =>
@@ -163,7 +176,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
             val str =
               s"""   url('$cdnUrl/subsettedFonts/${fontFile.name}') format('${fontFile.extension}')""".stripMargin
             sb :+ (str)
-          }
+          }.mkString("\n")
 
 
           val localFontNameNoSpace = localFontName.replaceAll(" ", "")
@@ -183,7 +196,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
           sb2 :+ fontFace
         }
 
-      (sb :+ unicodeInfo1) ++ fontSrlCss
+      (sb :+ unicodeInfoRange :+ unicodeInfoCharacter) ++ fontSrlCss
     }
     Ok(css.mkString("\n")).as(CSS)
       .withHeaders(("cache-control" -> "s-maxage=120,max-age=360000"))
