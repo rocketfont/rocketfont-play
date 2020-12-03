@@ -203,6 +203,6 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
       fontSrlCss.reverse ++ (unicodeInfoRange +: (unicodeInfoCharacter +: sb))
     }
     Ok(css.reverse.mkString("\n")).as(CSS)
-//      .withHeaders(("cache-control" -> "s-maxage=120,max-age=864000"))
+      .withHeaders(("cache-control" -> "s-maxage=120,max-age=864000"))
   }
 }
