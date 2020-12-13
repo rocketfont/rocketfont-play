@@ -1,14 +1,14 @@
 package controllers.fontsApi
 
 import java.net.URL
-
 import akka.actor.ActorSystem
+
 import javax.inject._
 import play.api.Configuration
 import play.api.mvc._
 import scalikejdbc._
 import undefined.dataClass.UnicodeSet
-import undefined.fonts.{ABUnicodes, FontUnicodeSet, FontUnicodes, Fonts}
+import undefined.fonts.{ABUnicodes, FontUnicodeSet, FontUnicodes, Fonts, GenerateFontFiles}
 import undefined._
 import undefined.di.DBExecutionContext
 import undefined.exception.ValidationException
@@ -31,6 +31,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
                                    dbEc : DBExecutionContext,
                                    authorizedAction: AuthorizedAction,
                                    ac: ActorSystem,
+                                   genFontFiles : GenerateFontFiles,
                                    val ec: ExecutionContext) extends BaseController {
 
   private val cdnUrl = config.get[String]("rocketFont.cdnURL")
@@ -63,7 +64,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
 
     val hostNameMatchF = isHostnameMatchF.transform{ isHostnameMatch =>
       (refererHost, isHostnameMatch) match {
-        case (rh , _) if rh.endsWith(".rocketfont.net") => Success()
+        case (rh , _) if rh.endsWith(".rocketfont.net") => Success(() : Unit)
         case (_, Success(false)) => Failure(new ValidationException("hostname 비일치"))
       }
     }(ec)
@@ -87,78 +88,79 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
     }
 
 
-    val (setAPageUnicodes, setBPageUnicodes) = urlOpt match {
-      case Some(t) =>
-        ABUnicodes.getABUnicodesByURL(targetUrl)
-      case None => (Seq.empty[Int], Seq.empty[Int])
-    }
+//    val (setAPageUnicodes, setBPageUnicodes) = urlOpt match {
+//      case Some(t) =>
+//        ABUnicodes.getABUnicodesByURL(targetUrl)
+//      case None => (Seq.empty[Int], Seq.empty[Int])
+//    }
 
 
     val fonts = Fonts.getFontsFromDBByFontParams(fontParams)
+    val subsettedFontFilesByFontSrl = genFontFiles(url, fonts)
 
-    val fontSrls = fonts.map(_.fontSrl)
+//    val fontSrls = fonts.map(_.fontSrl)
     val fontsMap = fonts.map(t => t.fontSrl -> t).toMap
 
 
 
-    val fontsUnicodes: Map[Long, Set[Int]] = Fonts.getFontsUncidoesFromDB(fontSrls)
+//    val fontsUnicodes: Map[Long, Set[Int]] = Fonts.getFontsUncidoesFromDB(fontSrls)
+
+//
+//    require((setAPageUnicodes.toSet & setBPageUnicodes.toSet).isEmpty, "setAPageUnicodes Intersection with setBPageUnicodes NOT empty")
+//
+//    val CUnicodesSeqInDB: Seq[Int] = DB readOnly { implicit session =>
+//
+//
+//      val ABunicodes = setAPageUnicodes ++ setBPageUnicodes
+//      val unicodesSqlParam = ABunicodes match {
+//        case t if t.isEmpty => Seq(-1)
+//        case t => t.map(x => Some(x))
+//      }
+//
+//      sql"""
+//           SELECT unicode
+//           FROM font_unicode_set_c
+//           WHERE 1=1
+//           AND unicode  NOT IN ($unicodesSqlParam)
+//           ORDER BY priority DESC, unicode
+//           """
+//        .map(rs => rs.int("unicode"))
+//        .list()
+//        .apply()
+//    }
 
 
-    require((setAPageUnicodes.toSet & setBPageUnicodes.toSet).isEmpty, "setAPageUnicodes Intersection with setBPageUnicodes NOT empty")
 
-    val CUnicodesSeqInDB: Seq[Int] = DB readOnly { implicit session =>
-
-
-      val ABunicodes = setAPageUnicodes ++ setBPageUnicodes
-      val unicodesSqlParam = ABunicodes match {
-        case t if t.isEmpty => Seq(-1)
-        case t => t.map(x => Some(x))
-      }
-
-      sql"""
-           SELECT unicode
-           FROM font_unicode_set_c
-           WHERE 1=1
-           AND unicode  NOT IN ($unicodesSqlParam)
-           ORDER BY priority DESC, unicode
-           """
-        .map(rs => rs.int("unicode"))
-        .list()
-        .apply()
-    }
+//    val groupedOrderedUnicodesByFontSrl: Map[Long, UnicodeSet] = fontsUnicodes.map(t => {
+//
+//      val (fontSrl, fontUnicodeSet) = t
+//      val AUnicodes = new FontUnicodes(setAPageUnicodes).intersect(fontUnicodeSet)
+//      val BUnicodes = new FontUnicodes(setBPageUnicodes).intersect(fontUnicodeSet)
+//      val CUnicodes = new FontUnicodes(CUnicodesSeqInDB)
+//        .intersect(fontUnicodeSet)
+//
+//      val setDUnicodes = new FontUnicodeSet(fontUnicodeSet)
+//        .minus(AUnicodes)
+//        .minus(BUnicodes)
+//        .minus(CUnicodes)
+//      fontSrl -> dataClass.UnicodeSet(AUnicodes, BUnicodes, CUnicodes, setDUnicodes)
+//    })
 
 
-
-    val groupedOrderedUnicodesByFontSrl: Map[Long, UnicodeSet] = fontsUnicodes.map(t => {
-
-      val (fontSrl, fontUnicodeSet) = t
-      val AUnicodes = new FontUnicodes(setAPageUnicodes).intersect(fontUnicodeSet)
-      val BUnicodes = new FontUnicodes(setBPageUnicodes).intersect(fontUnicodeSet)
-      val CUnicodes = new FontUnicodes(CUnicodesSeqInDB)
-        .intersect(fontUnicodeSet)
-
-      val setDUnicodes = new FontUnicodeSet(fontUnicodeSet)
-        .minus(AUnicodes)
-        .minus(BUnicodes)
-        .minus(CUnicodes)
-      fontSrl -> dataClass.UnicodeSet(AUnicodes, BUnicodes, CUnicodes, setDUnicodes)
-    })
-
-
-    val subsettedFontFilesByFontSrl: Map[Long, UnicodeSetWithFile] = groupedOrderedUnicodesByFontSrl.map { t =>
-      val (fontSrl, unicodeSet) = t
-      val fontInfo = fontsMap(fontSrl)
-
-      val fontSubsetTool = new FontSubset(config, ac)
-
-      val groupedOrderedSubsetedFontFiles: Seq[(Seq[File], Seq[Int])] =
-        unicodeSet
-          .orderdGroupedUnicodes
-          .par
-          .map(t => (fontSubsetTool.subsetFont(fontInfo.fontFileName, t), t))
-          .seq
-      fontSrl -> UnicodeSetWithFile(unicodeSet, groupedOrderedSubsetedFontFiles)
-    }
+//    val subsettedFontFilesByFontSrl: Map[Long, UnicodeSetWithFile] = groupedOrderedUnicodesByFontSrl.map { t =>
+//      val (fontSrl, unicodeSet) = t
+//      val fontInfo = fontsMap(fontSrl)
+//
+//      val fontSubsetTool = new FontSubset(config, ac)
+//
+//      val groupedOrderedSubsetedFontFiles: Seq[(Seq[File], Seq[Int])] =
+//        unicodeSet
+//          .orderdGroupedUnicodes
+//          .par
+//          .map(t => (fontSubsetTool.subsetFont(fontInfo.fontFileName, t), t))
+//          .seq
+//      fontSrl -> UnicodeSetWithFile(unicodeSet, groupedOrderedSubsetedFontFiles)
+//    }
 
 
 

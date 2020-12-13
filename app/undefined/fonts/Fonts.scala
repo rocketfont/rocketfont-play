@@ -9,6 +9,31 @@ import undefined.dataClass.{FontInfo, FontTuple}
 
 object Fonts {
 
+  def getFontsFromDBByFontSrls(fontSrls : Seq[Long]) : Seq[FontInfo] = {
+
+    require(fontSrls.nonEmpty, "fontSrls must not be empty")
+
+    DB readOnly {implicit session =>
+
+     sql"""
+          SELECT font_srl, font_family_name, font_style, font_weight, font_file_name
+          FROM font
+          WHERE 1=1
+          AND font_srl in ($fontSrls)
+         """.stripMargin
+      .map(rs =>
+        FontInfo(fontSrl = rs.long("font_srl"),
+          fontFamilyName = rs.string("font_family_name"),
+          fontWeight = rs.int("font_weight").toChar,
+          fontStyle = rs.string("font_style"),
+          fontFileName = rs.string("font_file_name")
+        )
+      )
+      .list()
+      .apply()
+    }
+  }
+
   def getFontsFromDBByFontParams(fontParams : String) : Seq[FontInfo] = {
 
     val fontRequestes = URLDecoder.decode(fontParams, StandardCharsets.UTF_8).split('/').toSeq
