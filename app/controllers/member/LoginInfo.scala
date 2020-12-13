@@ -21,9 +21,9 @@ import scala.util.{Failure, Success, Try}
  */
 
 @Singleton
-class IsLogged @Inject()(val controllerComponents: ControllerComponents,
-                         protected val dbConfigProvider: DatabaseConfigProvider,
-                         val ec: ExecutionContext) extends BaseController
+class LoginInfo @Inject()(val controllerComponents: ControllerComponents,
+                          protected val dbConfigProvider: DatabaseConfigProvider,
+                          val ec: ExecutionContext) extends BaseController
   with HasDatabaseConfigProvider[JdbcProfile] {
 
   /**

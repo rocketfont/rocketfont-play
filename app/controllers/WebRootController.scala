@@ -43,7 +43,7 @@ class WebRootController @Inject()(val controllerComponents: ControllerComponents
             NotModified
           case _ =>
             Ok.sendFile(file.jfile).withHeaders(
-              "cache-control" -> "max-age=1",
+              "cache-control" -> "max-age=86400",
               "last-modified" -> lastModifedFile.format(DateTimeFormatter.RFC_1123_DATE_TIME)
             )
         }

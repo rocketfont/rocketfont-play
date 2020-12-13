@@ -1,8 +1,8 @@
 package undefined.dataClass
 
-import undefined.fonts.FontUnicodes
+import undefined.fonts.{FontUnicodeSet, FontUnicodes}
 
-import scala.::
+import scala.{+:, ::}
 import scala.collection.{SortedSet, mutable}
 
 /**
@@ -16,37 +16,20 @@ case class UnicodeSet
 (setAUnicodes: FontUnicodes,
  setBUnicodes: FontUnicodes,
  setCUnicodes: FontUnicodes,
- setDUnicodes: FontUnicodes) {
+ setDUnicodes: FontUnicodeSet) {
+
+  val sortedSeqA: Seq[Int] = setAUnicodes.unicodeSet.toSeq.sorted
+  val sortedSeqB: Seq[Int] = setBUnicodes.unicodeSet.toSeq.sorted
+  val sortedSeqC: Seq[Int] = setCUnicodes.unicodeSet.toSeq.sorted
+  val sortedSeqD: Seq[Int] = setDUnicodes.unicodeSet.toSeq.sorted
 
   def orderdGroupedUnicodes: Seq[Seq[Int]] = {
 
-    val orderedUnicodes: Seq[Int] =
-      setAUnicodes.unicodeSeq ++
-        setBUnicodes.unicodeSeq ++
-        setCUnicodes.unicodeSeq ++
-        setDUnicodes.unicodeSeq
 
+    val CDUnicodes: Seq[Int] = setCUnicodes.unicodeSeq ++ sortedSeqD
 
-    val CDUnicodes = setCUnicodes.unicodeSeq ++ setDUnicodes.unicodeSeq
-
-//    val thridUnicodesCutSize = if(ABUnicodes.size < 1200) {
-//      1200-ABUnicodes.size
-//    }
-//    else{
-//      100
-//    }
-//
-//    val thridUnicodes = CDUnicodes.take(thridUnicodesCutSize)
-//    val forthUnicodes = CDUnicodes.drop(t => t.)
-
-
-    //noinspection ScalaStylek
-    val result = (
-      (Nil :+ setAUnicodes.unicodeSeq
-      :+ setBUnicodes.unicodeSeq)
-      ++ CDUnicodes.grouped(200)
-      ).filter(t => t.nonEmpty)
-
-    result
+    val result: Seq[Seq[Int]] =
+      ( sortedSeqA +: sortedSeqB +: (CDUnicodes.grouped(200) ++: Nil)).filter(t => t.nonEmpty)
+      result
   }
 }

@@ -41,7 +41,7 @@ class FontSubset @Inject()(config: Configuration, ac : ActorSystem) {
     subsetFont(fontName, subsetCharsString)
   }
 
-  def subsetFont(fontName: String, subsetChars: String): Seq[File] = {
+  private def subsetFont(fontName: String, subsetChars: String): Seq[File] = {
 
     val fontsDir = File(config.underlying.getString("rocketFont.fontsDir"))
     val webRootDir = File(config.underlying.getString("rocketFont.webRootDir"))

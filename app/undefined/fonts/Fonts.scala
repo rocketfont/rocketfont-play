@@ -50,12 +50,13 @@ object Fonts {
   }
 
   def getFontsUncidoesFromDB(fontSrls: Seq[Long]): Map[Long, Set[Int]] = {
+    val fontSrslParam = if(fontSrls.isEmpty) Seq(-1) else fontSrls
     DB readOnly { implicit session =>
       val unicodes = sql"""
             SELECT font_srl, unicode
             FROM font_unicode
             WHERE 1=1
-            AND font_srl in ($fontSrls)
+            AND font_srl in ($fontSrslParam)
            """
         .map(rs => (rs.long("font_srl"), rs.int("unicode")))
         .list()

@@ -3,7 +3,6 @@ package controllers.member
 import java.security.SecureRandom
 import java.sql.{SQLException, SQLIntegrityConstraintViolationException, Timestamp}
 import java.time.LocalDateTime
-
 import javax.inject._
 import play.api.{Configuration, Logger}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -15,7 +14,7 @@ import undefined.dataClass.JsonResponse
 import undefined.di.DBExecutionContext
 import undefined.email.SendEmail
 import undefined.exception.ValidationException
-import undefined.slick.Tables.{Member, MemberEmailAuth, MemberEmailAuthRow, MemberRow}
+import undefined.slick.Tables.{Member, MemberEmailAuth, MemberEmailAuthRow, MemberGroup, MemberGroupRow, MemberRow}
 
 import scala.async.Async.{async, await}
 import scala.concurrent.{ExecutionContext, Future}
@@ -53,11 +52,13 @@ class SignUp @Inject()(
 
       val expire = Timestamp.valueOf(LocalDateTime.now().plusHours(1))
 
+
       implicit val databaseExe: DBExecutionContext = dbEc
       val dbAction = (for {
         memberSrl <- Member.returning(Member.map(_.memberSrl)) +=
           MemberRow(0, body.emailNormalized, body.encryptPassword, "EMAIL_AUTH", now, now)
         _ <- MemberEmailAuth += MemberEmailAuthRow(0, memberSrl, token, expire, now, now)
+        _ <- MemberGroup += MemberGroupRow(memberSrl =  memberSrl, groupSrl = 2, memberGroupSrl = -1, created = now, modified = now)
       } yield memberSrl).transactionally
       val dbF = db.run(dbAction)
 

@@ -14,10 +14,26 @@ object FontTuple {
   val defaultWidth = 400
 
   def apply(fontRequestString: String): Option[FontTuple] = {
-    val fontsReqStringArr = fontRequestString.split(':')
-    fontsReqStringArr match {
-      case Array(fontName, FontWeightInt(fontWeight), fontStyle)
-      => Some(FontTuple(fontName, fontWeight, fontStyle))
+    val fontsReqStringArr = fontRequestString.split(":")
+
+    val fontName = fontsReqStringArr.isDefinedAt(0) match {
+      case false => None
+      case true => Some(fontsReqStringArr(0))
+    }
+
+    val fontWeight = fontsReqStringArr.isDefinedAt(1) match {
+      case true  if fontsReqStringArr(1).forall(t => t.isDigit) => Some(fontsReqStringArr(1))
+      case _ => Some("400")
+    }
+
+    val fontStyle = fontsReqStringArr.isDefinedAt(2) match {
+      case false => Some("normal")
+      case true => Some(fontsReqStringArr(2))
+    }
+
+
+    (fontName, fontWeight, fontStyle) match {
+      case (Some(fontName), Some(fontWeight), Some(fontStyle)) => Some(FontTuple(fontName, fontWeight.toInt, fontStyle))
       case _ => None
     }
   }

@@ -4,7 +4,7 @@
 # ~~~~
 
 # member
-GET      /backoffice/api/v1/member/isLogged                 controllers.member.IsLogged.index()
+GET      /backoffice/api/v1/member/loginInfo                 controllers.member.LoginInfo.index()
 + nocsrf
 POST     /backoffice/api/v1/member/login                    controllers.member.Login.index()
 + nocsrf
@@ -30,6 +30,12 @@ DELETE     /backoffice/api/v1/member/pendingHostname/:pendingHostNameSrl      co
 + nocsrf
 PUT     /backoffice/api/v1/member/hostname/:pendingHostNameSrl      controllers.hostsAuth.VerifyHostnameController.index(pendingHostNameSrl: Long)
 
++ nocsrf
+POST /backoffice/api/v1/member/resetPassword                    controllers.member.CreateFindPasswordRequestByEmailController.index()
++ nocsrf
+DELETE /backoffice/api/v1/member/resetPassword/:token                    controllers.member.ResetPasswordByEmailController.index(token : String)
+
+
 
 
 GET  /backoffice/api/v1/billing/card                  controllers.billing.RetrieveCreditCard.index()
@@ -40,11 +46,12 @@ DELETE  /backoffice/api/v1/billing/card                  controllers.billing.Del
 
 
 GET     /backoffice/api/v1/billing/monthlyCharge            controllers.billing.RetrieveUsageChargeController.index(from: String, to : String)
+GET     /backoffice/api/v1/billing/monthlyUsageFromUser     controllers.billing.RetrieveUsageForFontCompanyController.index(from : String, to : String)
 
 
 # An example controller showing a sample home page
 GET     /                                               controllers.HomeController.index()
-GET     /fonts/api/v1/fonts/*fontParameter            controllers.fontsApi.MainFontController.index(fontParameter : String,  url: Option[String], fontDisplay : String = "swap")
+GET     /fonts/api/v1/fonts/:memberSrl/*fontParameter            controllers.fontsApi.MainFontController.index(memberSrl : Long, fontParameter : String,  url: Option[String], fontDisplay : String = "swap")
 
 
 

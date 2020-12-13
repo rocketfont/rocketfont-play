@@ -13,7 +13,7 @@ sealed case class RangeUnicode(start : Int, end : Int) extends SealedUnicodeRang
 object UnicodeRangePrinter {
 
 
-  def printUnicode(unicodes: Seq[Int]): String = {
+  def printUnicode(unicodes: Iterable[Int]): String = {
     val unicodeSeqSeq = printInternal(unicodes)
     unicodeSeqSeq.map {
       case SingleUnicode(u) => s"U+${u.toHexString}"
@@ -22,7 +22,7 @@ object UnicodeRangePrinter {
       .mkString(",")
   }
 
-  def printLiteral(unicodes: Seq[Int]): String = {
+  def printLiteral(unicodes: Iterable[Int]): String = {
     val unicodeSeqSeq = printInternal(unicodes)
     unicodeSeqSeq.map {
       case SingleUnicode(u) => s"${String.valueOf(Character.toChars(u))}"
@@ -32,9 +32,9 @@ object UnicodeRangePrinter {
   }
 
 
-  private def printInternal(unicodeSeq: Seq[Int]): Iterable[SealedUnicodeRange] = {
+  private def printInternal(unicodeSeq: Iterable[Int]): Iterable[SealedUnicodeRange] = {
 
-    val sortedUnicodeSeq = unicodeSeq.sorted.toArray
+    val sortedUnicodeSeq = unicodeSeq.toArray
     var vector = Seq.empty[SealedUnicodeRange]
 
     var i = 0
