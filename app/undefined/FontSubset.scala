@@ -56,7 +56,7 @@ class FontSubset @Inject()(config: Configuration, ac : ActorSystem) {
     val targetFontFileNameAbs = File(fontsDir.path + File.separator + fontName).toAbsolute
 
     require(targetFontFileNameAbs.exists
-      && targetFontFileNameAbs.isFile, s"$fontName is not exists in $fontsDir or not a file")
+      && targetFontFileNameAbs.isFile, s"$fontName is not exists in ${targetFontFileNameAbs.path} or not a file")
 
 
     val subsetCharFile = File.makeTemp("subsetChars", ".txt").toAbsolute
