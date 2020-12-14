@@ -65,7 +65,7 @@ class VerifyHostnameController @Inject()(val controllerComponents: ControllerCom
         db.run(dbResult)
       //        Success(dbResult)
       case (row, txtRecords, false) =>
-        throw new ValidationException(s"TXT 레코드가 일치 하지 않습니다. 현재 TXT레코드는 ${txtRecords.mkString(",")} 입니다.")
+        throw new ValidationException(s"TXT 레코드가 일치 하지 않습니다. 현재 TXT레코드는 ${txtRecords.length}개로 '${txtRecords.mkString(",")}' 입니다.")
     }(ec)
 
     response.transform {
