@@ -1,4 +1,4 @@
-package undefined.tasks.WebsiteCrawlingTasks
+package undefined.tasks
 
 import akka.actor.{ActorRef, ActorSystem}
 import com.google.inject.Inject
@@ -11,7 +11,7 @@ import undefined.slick.Tables.{FontUsageMeasureAccessLog, FontUsageMeasureAccess
 import java.sql.Timestamp
 import java.time.LocalDateTime
 import javax.inject.Named
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.DurationInt
 import java.util.stream
 import scala.jdk.StreamConverters.StreamHasToScala
@@ -21,9 +21,7 @@ import undefined.AccessAndUpdateURLOnDemand
 import undefined.fonts.{Fonts, GenerateFontFiles}
 
 
-class WebPageCrawlingTask @Inject()(ws: WSClient,
-                                    actorSystem: ActorSystem,
-                                    @Named("some-actor") someActor: ActorRef,
+class WebPageCrawlingTask @Inject()(actorSystem: ActorSystem,
                                     access: AccessAndUpdateURLOnDemand,
                                     generateFontFiles: GenerateFontFiles,
                                     protected val dbConfigProvider: DatabaseConfigProvider)(
@@ -32,7 +30,7 @@ class WebPageCrawlingTask @Inject()(ws: WSClient,
   extends HasDatabaseConfigProvider[JdbcProfile] {
   actorSystem.scheduler.scheduleAtFixedRate(
     initialDelay = 0.second,
-    interval = 5.minutes,
+    interval = 1.minutes,
   ) { () =>
 
     val logger = Logger(this.getClass)
@@ -42,24 +40,34 @@ class WebPageCrawlingTask @Inject()(ws: WSClient,
       import slick.jdbc.MySQLProfile.api._
 
       FontUsageMeasureAccessLog
-        .filter(t => t.modified < before5min)
-        .map(row => (row.fontSrl, s"${row.host}://${row.host.reverse}:${row.port}${row.path}"))
+        .filter(t =>   t.modified > before5min )
         .result
     }
 
     val dbResult: Future[Seq[(Long, String)]] = db.run(accessLogQuery)
+      .map(rows => rows.map{row =>
+
+        val port = (row.protocol, row.port) match {
+          case ("https", 443) => ""
+          case ("http", 80) => ""
+          case (_, port)=> s":$port"
+        }
+        (row.fontSrl, s"${row.protocol}://${row.host.reverse}$port${row.path}")})
 
     val httpResponseF: Future[Seq[Unit]] = dbResult.map { rows =>
       logger.info(s"total ${rows.length} url found")
       rows.map { row =>
         val (fontSrl, url: String) = row
-        logger.info(s"url access $url")
-        access(url)
         val fontInfo = Fonts.getFontsFromDBByFontSrls(Seq(fontSrl))
-        logger.info(s"url access $url")
+        logger.info(s"url access $url, Fonts : '${fontInfo.head.fontFamilyName}''")
+        access(url)
+        logger.info(s"gen Fonts $url")
         generateFontFiles(url, fontInfo)
       }
     }
+
+    Await.result(httpResponseF, 10.minutes)
+    logger.info("finished")
 
 
   }

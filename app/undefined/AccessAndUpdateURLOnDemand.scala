@@ -27,7 +27,7 @@ class AccessAndUpdateURLOnDemandImplementation @Inject()
 
       val html = res.bodyAsBytes.utf8String
       val text = Jsoup.parse(html).text()
-      val unicodesWithCount = text.codePoints()
+      val unicodesWithCount: Map[Int, Int] = text.codePoints()
         .iterator()
         .asScala
         .map(t => t.toInt)
@@ -42,7 +42,7 @@ class AccessAndUpdateURLOnDemandImplementation @Inject()
         }
       unicodesInsertIntoDB(url, unicodesWithCount)
     }
-    Await.result(asynced, 30.seconds)
+    Await.result(asynced, 50.seconds)
   }
 
   private def unicodesInsertIntoDB(url: String, unicodeCount: Map[Int, Int]): () = {

@@ -69,7 +69,7 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
       }
     }(ec)
 
-    Await.result(hostNameMatchF, 1.second)
+    Await.result(hostNameMatchF, 10.second)
 
 
     val fontDisplayAllowed = Seq("auto", "block","swap", "fallback", "optional")
@@ -87,6 +87,10 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
       case None => None
     }
 
+    val fonts = Fonts.getFontsFromDBByFontParams(fontParams)
+    val fontsMap = fonts.map(t => t.fontSrl -> t).toMap
+    val subsettedFontFilesByFontSrl = genFontFiles(url, fonts)
+
 
 //    val (setAPageUnicodes, setBPageUnicodes) = urlOpt match {
 //      case Some(t) =>
@@ -95,11 +99,8 @@ class MainFontController @Inject()(val controllerComponents: ControllerComponent
 //    }
 
 
-    val fonts = Fonts.getFontsFromDBByFontParams(fontParams)
-    val subsettedFontFilesByFontSrl = genFontFiles(url, fonts)
 
 //    val fontSrls = fonts.map(_.fontSrl)
-    val fontsMap = fonts.map(t => t.fontSrl -> t).toMap
 
 
 
