@@ -49,7 +49,7 @@ class VerifyHostnameController @Inject()(val controllerComponents: ControllerCom
     val isSuccess = result.flatMap(row => {
       val dnsTxtRecord = row.dnsTxtRecord
       val txtRecords = getDNSTxtRecords(row.hostname)
-      txtRecords.map(txtRecords => (row, txtRecords, true || txtRecords.contains(dnsTxtRecord)))(ec)
+      txtRecords.map(txtRecords => (row, txtRecords, txtRecords.contains(dnsTxtRecord)))(ec)
     })(ec)
 
     val response = isSuccess.map {
