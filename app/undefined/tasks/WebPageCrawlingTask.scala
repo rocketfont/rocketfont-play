@@ -50,6 +50,7 @@ class WebPageCrawlingTask @Inject()(ws: WSClient,
     val dbResult: Future[Seq[(Long, String)]] = db.run(accessLogQuery)
 
     val httpResponseF: Future[Seq[Unit]] = dbResult.map { rows =>
+      logger.info(s"total ${rows.length} url found")
       rows.map { row =>
         val (fontSrl, url: String) = row
         logger.info(s"url access $url")
