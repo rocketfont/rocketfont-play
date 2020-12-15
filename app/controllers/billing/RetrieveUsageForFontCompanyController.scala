@@ -51,9 +51,9 @@ class RetrieveUsageForFontCompanyController @Inject()(val controllerComponents: 
             sql"""
                  |SELECT f.font_srl,
                  |       f.font_family_name,
-                 |       SUM(TIMESTAMPDIFF(MINUTE, fum.created, fum.modified))                            AS TIME_COUNT,
+                 |       SUM(TIMESTAMPDIFF(MINUTE, fum.created, fum.modified)+1)                            AS TIME_COUNT,
                  |       (fp.font_price_per_minute - fp.font_comission_per_request)                       AS PAYMENT_MINUTE_PER_FONT,
-                 |       SUM(TIMESTAMPDIFF(MINUTE, fum.created, fum.modified)) * fp.font_price_per_minute AS TOTAL_TIME_PRICE
+                 |       SUM(TIMESTAMPDIFF(MINUTE, fum.created, fum.modified)+1) * fp.font_price_per_minute AS TOTAL_TIME_PRICE
                  |FROM font_usage_measure_access_log fum
                  |         JOIN font f on fum.font_srl = f.font_srl
                  |         JOIN font_price fp on f.font_srl = fp.font_srl

@@ -107,7 +107,7 @@ class FontUsageMeasureController @Inject()(val controllerComponents: ControllerC
                | VALUES ($fontSrl,
                | ${jURL.getProtocol.toLowerCase}, ${jURL.getHost.toLowerCase.reverse},
                | ${port}, ${pathPart},
-               | $session, ${LocalDateTime.now}, ${LocalDateTime.now.plusMinutes(1)})
+               | $session, ${LocalDateTime.now}, ${LocalDateTime.now()})
                | ON DUPLICATE KEY
                | UPDATE modified = ${LocalDateTime.now}
                |"""

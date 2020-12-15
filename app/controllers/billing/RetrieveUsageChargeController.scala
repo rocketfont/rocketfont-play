@@ -63,9 +63,9 @@ class RetrieveUsageChargeController @Inject()(val controllerComponents: Controll
             fp.font_price_per_request,
             COUNT(session) * fp.font_price_per_request AS TOTAL_REQUEST_PRICE,
 
-            SUM(TIMESTAMPDIFF(MINUTE,fum.created, fum.modified))  AS TIME_COUNT,
+            SUM(TIMESTAMPDIFF(MINUTE,fum.created, fum.modified)+1)  AS TIME_COUNT,
             fp.font_price_per_minute,
-            SUM(TIMESTAMPDIFF(MINUTE ,fum.created, fum.modified)) * fp.font_price_per_minute AS TOTAL_TIME_PRICE
+            SUM(TIMESTAMPDIFF(MINUTE ,fum.created, fum.modified)+1) * fp.font_price_per_minute AS TOTAL_TIME_PRICE
 
             from font_usage_measure_access_log fum
                 JOIN font f on fum.font_srl = f.font_srl

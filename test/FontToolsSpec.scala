@@ -7,7 +7,11 @@ import play.api.{Configuration, Play}
 import undefined.dataClass.{FontInfo, FontTuple}
 import undefined.{FontSubset, UnicodeRangePrinter}
 
+import java.util
+import java.util.Collections
+import java.util.stream.Collectors
 import scala.concurrent.ExecutionContext
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.reflect.io.File
 
 //noinspection ScalaStyle
@@ -19,7 +23,7 @@ class FontToolsSpec  extends PlaySpec with GuiceOneAppPerSuite{
   private val fontSubset = new FontSubset(config, actorSystem)
 
   "system can parse font Request Get Param" in {
-    FontTuple("Noto Sans KR:400:normal").mustBe(FontTuple("Noto Sans KR", 400, "normal"))
+    FontTuple("Noto Sans KR:400:normal").getOrElse(FontTuple("",400,"")).mustBe(FontTuple("Noto Sans KR", 400, "normal"))
   }
 
   "fonttools can subset font" must {
@@ -28,7 +32,14 @@ class FontToolsSpec  extends PlaySpec with GuiceOneAppPerSuite{
     }
 
     "subset font is working" in {
-      fontSubset.subsetFont("NotoSansKR-Medium.otf", "가나다라")
+      fontSubset.subsetFont("NotoSansKR-Medium.otf",
+        "가나다라"
+        .codePoints()
+        .boxed()
+        .iterator()
+        .asScala
+        .map(_.toInt)
+        .toSeq)
     }
   }
 
